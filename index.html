@@ -48,7 +48,13 @@
 
 
       <div class="header-actions">
-
+<button
+  type="button"
+  class="reference-button"
+  id="openReferenceButton"
+>
+  ✨ Referensi
+</button>
         <button
           type="button"
           class="cart-button"
@@ -340,7 +346,124 @@
   </aside>
 
 
+<!-- =========================
+     REFERENCE CAROUSEL
+========================= -->
 
+<div
+  class="modal"
+  id="referenceModal"
+>
+
+  <div
+    class="modal-card reference-carousel-card"
+  >
+
+    <div class="modal-header">
+
+      <div>
+
+        <span class="section-label">
+          Inspiration
+        </span>
+
+        <h2>
+          Referensi Scrapbook
+        </h2>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="close-button"
+        id="closeReferenceButton"
+        aria-label="Tutup referensi"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <p class="reference-description">
+      Temukan inspirasi untuk scrapbook
+      dan journal versimu sendiri ✨
+    </p>
+
+
+    <div
+      class="reference-loading"
+      id="referenceLoading"
+    >
+      Memuat referensi...
+    </div>
+
+
+    <div
+      class="reference-carousel"
+      id="referenceCarousel"
+    >
+
+      <button
+        type="button"
+        class="carousel-arrow carousel-prev"
+        id="referencePrev"
+        aria-label="Referensi sebelumnya"
+      >
+        ‹
+      </button>
+
+
+      <div
+        class="reference-image-wrapper"
+      >
+
+        <img
+          id="referenceImage"
+          class="reference-image"
+          src=""
+          alt="Referensi scrapbook"
+        >
+
+      </div>
+
+
+      <button
+        type="button"
+        class="carousel-arrow carousel-next"
+        id="referenceNext"
+        aria-label="Referensi berikutnya"
+      >
+        ›
+      </button>
+
+    </div>
+
+
+    <h3
+      class="reference-title"
+      id="referenceTitle"
+    >
+    </h3>
+
+
+    <div
+      class="reference-dots"
+      id="referenceDots"
+    >
+    </div>
+
+
+    <div
+      class="reference-counter"
+      id="referenceCounter"
+    >
+    </div>
+
+  </div>
+
+</div>
   <!-- =========================
        CHECKOUT MODAL
   ========================== -->
