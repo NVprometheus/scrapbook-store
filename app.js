@@ -883,23 +883,195 @@ closeCheckoutButton.addEventListener(
 
 
 // ======================================================
-// 19. CHECKOUT SEMENTARA
+// 19. CHECKOUT → GOOGLE SHEETS
 // ======================================================
 
 checkoutForm.addEventListener(
   "submit",
-  function(event) {
+  async function(event) {
+
     event.preventDefault();
 
-    alert(
-      "Produk sudah berasal dari Google Sheets ✅\n\n" +
-      "Berikutnya kita akan membuat order " +
-      "benar-benar masuk ke sheet ORDERS."
-    );
+
+    if (cart.length === 0) {
+
+      alert(
+        "Keranjang masih kosong."
+      );
+
+      return;
+
+    }
+
+
+    const submitButton =
+      checkoutForm.querySelector(
+        ".submit-order-button"
+      );
+
+
+    const originalText =
+      submitButton.textContent;
+
+
+    submitButton.disabled = true;
+
+    submitButton.textContent =
+      "Memproses pesanan...";
+
+
+    try {
+
+      const payload = {
+
+        action: "createOrder",
+
+        customer_name:
+          document
+            .getElementById(
+              "customerName"
+            )
+            .value
+            .trim(),
+
+        whatsapp:
+          document
+            .getElementById(
+              "customerWhatsapp"
+            )
+            .value
+            .trim(),
+
+        address:
+          document
+            .getElementById(
+              "customerAddress"
+            )
+            .value
+            .trim(),
+
+        payment_method:
+          document
+            .getElementById(
+              "paymentMethod"
+            )
+            .value,
+
+        notes:
+          document
+            .getElementById(
+              "customerNotes"
+            )
+            .value
+            .trim(),
+
+        items:
+          cart.map(item => ({
+
+            product_id:
+              item.product_id,
+
+            quantity:
+              item.quantity
+
+          }))
+
+      };
+
+
+      const response =
+        await fetch(
+          API_URL,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "text/plain;charset=utf-8"
+            },
+
+            body:
+              JSON.stringify(payload)
+          }
+        );
+
+
+      const result =
+        await response.json();
+
+
+      if (!result.success) {
+
+        throw new Error(
+          result.message ||
+          "Pesanan gagal dibuat."
+        );
+
+      }
+
+
+      alert(
+        "✅ PESANAN BERHASIL!\n\n" +
+        "Order ID:\n" +
+        result.order_id +
+        "\n\n" +
+        "Total:\n" +
+        formatRupiah(
+          result.total
+        )
+      );
+
+
+      // Kosongkan cart
+      cart = [];
+
+      saveCart();
+
+      renderCart();
+
+
+      // Reset form
+      checkoutForm.reset();
+
+
+      // Tutup checkout
+      checkoutModal.classList.remove(
+        "active"
+      );
+
+
+      // Ambil stok terbaru
+      await loadProducts();
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "CREATE ORDER ERROR:",
+        error
+      );
+
+
+      alert(
+        "❌ Pesanan belum berhasil.\n\n" +
+        error.message
+      );
+
+    }
+
+    finally {
+
+      submitButton.disabled =
+        false;
+
+      submitButton.textContent =
+        originalText;
+
+    }
+
   }
 );
-
-
 // ======================================================
 // 20. START WEBSITE
 // ======================================================
