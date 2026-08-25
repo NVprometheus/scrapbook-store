@@ -75,6 +75,64 @@ const closeCheckoutButton =
 
 const checkoutForm =
   document.getElementById("checkoutForm");
+// ======================================================
+// REFERENCE ELEMENTS
+// ======================================================
+
+const referenceModal =
+  document.getElementById(
+    "referenceModal"
+  );
+
+const openReferenceButton =
+  document.getElementById(
+    "openReferenceButton"
+  );
+
+const closeReferenceButton =
+  document.getElementById(
+    "closeReferenceButton"
+  );
+
+const referenceImage =
+  document.getElementById(
+    "referenceImage"
+  );
+
+const referencePrev =
+  document.getElementById(
+    "referencePrev"
+  );
+
+const referenceNext =
+  document.getElementById(
+    "referenceNext"
+  );
+
+const referenceDots =
+  document.getElementById(
+    "referenceDots"
+  );
+
+const referenceCounter =
+  document.getElementById(
+    "referenceCounter"
+  );
+
+const referenceTitle =
+  document.getElementById(
+    "referenceTitle"
+  );
+
+const referenceLoading =
+  document.getElementById(
+    "referenceLoading"
+  );
+
+const referenceCarousel =
+  document.getElementById(
+    "referenceCarousel"
+  );
 
 
 // ======================================================
@@ -1075,5 +1133,449 @@ checkoutForm.addEventListener(
 // ======================================================
 // 20. START WEBSITE
 // ======================================================
+// ======================================================
+// REFERENCES DARI GOOGLE SHEETS
+// ======================================================
 
+let references = [];
+
+let currentReferenceIndex = 0;
+
+
+// ======================================================
+// LOAD REFERENCES
+// ======================================================
+
+async function loadReferences() {
+
+  referenceLoading.style.display =
+    "block";
+
+  referenceLoading.textContent =
+    "Memuat referensi...";
+
+  referenceCarousel.style.display =
+    "none";
+
+
+  try {
+
+    const response =
+      await fetch(
+        `${API_URL}?action=references&t=${Date.now()}`
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Gagal menghubungi server."
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (!data.success) {
+
+      throw new Error(
+        data.message ||
+        "Referensi gagal dimuat."
+      );
+
+    }
+
+
+    references =
+      Array.isArray(data.references)
+        ? data.references
+        : [];
+
+
+    references =
+      references.filter(
+        item =>
+          item.image_url
+      );
+
+
+    currentReferenceIndex = 0;
+
+
+    renderReference();
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "LOAD REFERENCES ERROR:",
+      error
+    );
+
+
+    referenceLoading.style.display =
+      "block";
+
+    referenceLoading.textContent =
+      "⚠️ Referensi belum dapat dimuat.";
+
+    referenceCarousel.style.display =
+      "none";
+
+  }
+
+}
+
+
+// ======================================================
+// RENDER REFERENCE
+// ======================================================
+
+function renderReference() {
+
+  if (references.length === 0) {
+
+    referenceLoading.style.display =
+      "block";
+
+    referenceLoading.textContent =
+      "Belum ada referensi.";
+
+    referenceCarousel.style.display =
+      "none";
+
+    referenceTitle.textContent = "";
+
+    referenceDots.innerHTML = "";
+
+    referenceCounter.textContent = "";
+
+    return;
+
+  }
+
+
+  referenceLoading.style.display =
+    "none";
+
+  referenceCarousel.style.display =
+    "flex";
+
+
+  const reference =
+    references[
+      currentReferenceIndex
+    ];
+
+
+  referenceImage.src =
+    reference.image_url;
+
+
+  referenceImage.alt =
+    reference.title ||
+    "Referensi Scrapbook";
+
+
+  referenceTitle.textContent =
+    reference.title || "";
+
+
+  referenceCounter.textContent =
+    `${currentReferenceIndex + 1} / ${references.length}`;
+
+
+  referenceDots.innerHTML =
+    references
+      .map(
+        (item, index) => `
+          <button
+            type="button"
+            class="reference-dot ${
+              index === currentReferenceIndex
+                ? "active"
+                : ""
+            }"
+            onclick="goToReference(${index})"
+            aria-label="Referensi ${index + 1}"
+          ></button>
+        `
+      )
+      .join("");
+
+
+  const showNavigation =
+    references.length > 1;
+
+
+  referencePrev.style.display =
+    showNavigation
+      ? "grid"
+      : "none";
+
+
+  referenceNext.style.display =
+    showNavigation
+      ? "grid"
+      : "none";
+
+}
+
+
+// ======================================================
+// NEXT REFERENCE
+// ======================================================
+
+function nextReference() {
+
+  if (references.length <= 1) {
+    return;
+  }
+
+
+  currentReferenceIndex =
+    (
+      currentReferenceIndex + 1
+    ) %
+    references.length;
+
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// PREVIOUS REFERENCE
+// ======================================================
+
+function previousReference() {
+
+  if (references.length <= 1) {
+    return;
+  }
+
+
+  currentReferenceIndex =
+    (
+      currentReferenceIndex -
+      1 +
+      references.length
+    ) %
+    references.length;
+
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// PILIH DOT
+// ======================================================
+
+function goToReference(index) {
+
+  if (
+    index < 0 ||
+    index >= references.length
+  ) {
+
+    return;
+
+  }
+
+
+  currentReferenceIndex =
+    index;
+
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// OPEN REFERENCE
+// ======================================================
+
+function openReference() {
+
+  referenceModal.classList.add(
+    "active"
+  );
+
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// CLOSE REFERENCE
+// ======================================================
+
+function closeReference() {
+
+  referenceModal.classList.remove(
+    "active"
+  );
+
+}
+
+
+// ======================================================
+// BUTTON EVENTS
+// ======================================================
+
+openReferenceButton.addEventListener(
+  "click",
+  openReference
+);
+
+
+closeReferenceButton.addEventListener(
+  "click",
+  closeReference
+);
+
+
+referencePrev.addEventListener(
+  "click",
+  previousReference
+);
+
+
+referenceNext.addEventListener(
+  "click",
+  nextReference
+);
+
+
+// Klik area gelap → tutup
+referenceModal.addEventListener(
+  "click",
+  function(event) {
+
+    if (
+      event.target ===
+      referenceModal
+    ) {
+
+      closeReference();
+
+    }
+
+  }
+);
+
+
+// ======================================================
+// SWIPE DI HP
+// ======================================================
+
+let referenceTouchStartX = 0;
+
+
+referenceImage.addEventListener(
+  "touchstart",
+  function(event) {
+
+    referenceTouchStartX =
+      event.touches[0].clientX;
+
+  },
+  {
+    passive: true
+  }
+);
+
+
+referenceImage.addEventListener(
+  "touchend",
+  function(event) {
+
+    const touchEndX =
+      event.changedTouches[0].clientX;
+
+
+    const difference =
+      referenceTouchStartX -
+      touchEndX;
+
+
+    if (
+      Math.abs(difference) < 50
+    ) {
+
+      return;
+
+    }
+
+
+    if (difference > 0) {
+
+      nextReference();
+
+    }
+
+    else {
+
+      previousReference();
+
+    }
+
+  },
+  {
+    passive: true
+  }
+);
+
+
+// ======================================================
+// KEYBOARD DESKTOP
+// ======================================================
+
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    if (
+      !referenceModal
+        .classList
+        .contains("active")
+    ) {
+
+      return;
+
+    }
+
+
+    if (event.key === "ArrowRight") {
+
+      nextReference();
+
+    }
+
+
+    if (event.key === "ArrowLeft") {
+
+      previousReference();
+
+    }
+
+
+    if (event.key === "Escape") {
+
+      closeReference();
+
+    }
+
+  }
+);
 loadProducts();
+loadReferences();
