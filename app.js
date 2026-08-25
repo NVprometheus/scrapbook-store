@@ -1,109 +1,102 @@
 // ======================================================
-// SCRAPBOOK STORE - APP.JS
-// Versi awal untuk testing frontend
+// SCRAPBOOK STORE
+// Frontend Website
 // ======================================================
 
 
 // ======================================================
-// 1. DATA PRODUK DUMMY
-// Nanti bagian ini akan diganti data dari Google Sheets
+// 1. API GOOGLE APPS SCRIPT
 // ======================================================
 
-const products = [
-  {
-    product_id: "PRD001",
-    product_name: "Vintage Floral Paper",
-    price: 15000,
-    stock: 20,
-    category: "Paper",
-    image_url: "",
-    description: "Kertas scrapbook motif floral vintage.",
-    active: true,
-    featured: true
-  },
-  {
-    product_id: "PRD002",
-    product_name: "Floral Sticker Pack",
-    price: 12000,
-    stock: 15,
-    category: "Sticker",
-    image_url: "",
-    description: "Sticker floral untuk dekorasi scrapbook.",
-    active: true,
-    featured: true
-  },
-  {
-    product_id: "PRD003",
-    product_name: "Mini Vintage Journal",
-    price: 35000,
-    stock: 8,
-    category: "Journal",
-    image_url: "",
-    description: "Journal mini dengan tema vintage.",
-    active: true,
-    featured: false
-  }
-];
+const API_URL =
+  "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec";
 
 
-// ======================================================
-// 2. STATE / DATA SEMENTARA
-// ======================================================
+// Produk sekarang TIDAK ditulis di kode.
+// Data akan diambil dari Google Sheets.
+let products = [];
 
 let selectedCategory = "all";
 
-let cart = JSON.parse(
-  localStorage.getItem("scrapbookCart")
-) || [];
+let cart =
+  JSON.parse(
+    localStorage.getItem("scrapbookCart")
+  ) || [];
 
 
 // ======================================================
-// 3. AMBIL ELEMENT HTML
+// 2. ELEMENT HTML
 // ======================================================
 
-const productGrid = document.getElementById("productGrid");
-const productCount = document.getElementById("productCount");
+const productGrid =
+  document.getElementById("productGrid");
 
-const searchInput = document.getElementById("searchInput");
-const categoryList = document.getElementById("categoryList");
+const productCount =
+  document.getElementById("productCount");
 
-const cartCount = document.getElementById("cartCount");
-const cartTotal = document.getElementById("cartTotal");
-const checkoutTotal = document.getElementById("checkoutTotal");
+const searchInput =
+  document.getElementById("searchInput");
 
-const cartItems = document.getElementById("cartItems");
+const categoryList =
+  document.getElementById("categoryList");
 
-const cartDrawer = document.getElementById("cartDrawer");
-const cartOverlay = document.getElementById("cartOverlay");
+const cartCount =
+  document.getElementById("cartCount");
 
-const openCartButton = document.getElementById("openCartButton");
-const closeCartButton = document.getElementById("closeCartButton");
+const cartTotal =
+  document.getElementById("cartTotal");
 
-const checkoutButton = document.getElementById("checkoutButton");
+const checkoutTotal =
+  document.getElementById("checkoutTotal");
 
-const checkoutModal = document.getElementById("checkoutModal");
-const closeCheckoutButton = document.getElementById(
-  "closeCheckoutButton"
-);
+const cartItems =
+  document.getElementById("cartItems");
 
-const checkoutForm = document.getElementById("checkoutForm");
+const cartDrawer =
+  document.getElementById("cartDrawer");
+
+const cartOverlay =
+  document.getElementById("cartOverlay");
+
+const openCartButton =
+  document.getElementById("openCartButton");
+
+const closeCartButton =
+  document.getElementById("closeCartButton");
+
+const checkoutButton =
+  document.getElementById("checkoutButton");
+
+const checkoutModal =
+  document.getElementById("checkoutModal");
+
+const closeCheckoutButton =
+  document.getElementById("closeCheckoutButton");
+
+const checkoutForm =
+  document.getElementById("checkoutForm");
 
 
 // ======================================================
-// 4. FORMAT RUPIAH
+// 3. FORMAT RUPIAH
 // ======================================================
 
 function formatRupiah(number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0
-  }).format(number);
+
+  return new Intl.NumberFormat(
+    "id-ID",
+    {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0
+    }
+  ).format(Number(number) || 0);
+
 }
 
 
 // ======================================================
-// 5. ICON PRODUK SEMENTARA
+// 4. ICON KATEGORI
 // ======================================================
 
 function getCategoryIcon(category) {
@@ -121,48 +114,209 @@ function getCategoryIcon(category) {
 
 
 // ======================================================
-// 6. TAMPILKAN PRODUK
+// 5. AMBIL PRODUCTS DARI GOOGLE SHEETS
+// ======================================================
+
+async function loadProducts() {
+
+  productGrid.innerHTML = `
+    <div class="loading-message">
+      Memuat koleksi dari toko... ✨
+    </div>
+  `;
+
+  productCount.textContent =
+    "Memuat produk...";
+
+
+  try {
+
+    const response =
+      await fetch(
+        `${API_URL}?action=products&t=${Date.now()}`
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Gagal menghubungi server."
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (!data.success) {
+
+      throw new Error(
+        data.message ||
+        "Data produk gagal dimuat."
+      );
+
+    }
+
+
+    products =
+      Array.isArray(data.products)
+        ? data.products
+        : [];
+
+
+    // Pastikan tipe datanya benar
+    products = products.map(product => ({
+
+      ...product,
+
+      price:
+        Number(product.price) || 0,
+
+      stock:
+        Number(product.stock) || 0,
+
+      active:
+        product.active === true
+
+    }));
+
+
+    syncCartWithProducts();
+
+    renderCategories();
+
+    renderProducts();
+
+    renderCart();
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "LOAD PRODUCTS ERROR:",
+      error
+    );
+
+
+    productGrid.innerHTML = `
+      <div class="loading-message">
+        ⚠️ Produk belum dapat dimuat.
+        <br><br>
+        Coba refresh halaman.
+      </div>
+    `;
+
+
+    productCount.textContent =
+      "Gagal memuat produk";
+
+  }
+
+}
+
+
+// ======================================================
+// 6. CATEGORY DINAMIS
+// ======================================================
+
+function renderCategories() {
+
+  const categories =
+    [
+      ...new Set(
+        products
+          .filter(product => product.active)
+          .map(product => product.category)
+          .filter(Boolean)
+      )
+    ];
+
+
+  categoryList.innerHTML = `
+
+    <button
+      type="button"
+      class="category-button active"
+      data-category="all"
+    >
+      Semua
+    </button>
+
+    ${categories
+      .map(category => `
+        <button
+          type="button"
+          class="category-button"
+          data-category="${category}"
+        >
+          ${category}
+        </button>
+      `)
+      .join("")}
+
+  `;
+
+}
+
+
+// ======================================================
+// 7. TAMPILKAN PRODUCTS
 // ======================================================
 
 function renderProducts() {
 
-  const keyword = searchInput.value
-    .toLowerCase()
-    .trim();
+  const keyword =
+    searchInput.value
+      .toLowerCase()
+      .trim();
 
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts =
+    products.filter(product => {
 
-    const productActive =
-      product.active === true;
-
-
-    const matchesSearch =
-      product.product_name
-        .toLowerCase()
-        .includes(keyword) ||
-
-      product.description
-        .toLowerCase()
-        .includes(keyword) ||
-
-      product.category
-        .toLowerCase()
-        .includes(keyword);
+      if (!product.active) {
+        return false;
+      }
 
 
-    const matchesCategory =
-      selectedCategory === "all" ||
-      product.category === selectedCategory;
+      const name =
+        String(
+          product.product_name || ""
+        ).toLowerCase();
 
 
-    return (
-      productActive &&
-      matchesSearch &&
-      matchesCategory
-    );
+      const description =
+        String(
+          product.description || ""
+        ).toLowerCase();
 
-  });
+
+      const category =
+        String(
+          product.category || ""
+        ).toLowerCase();
+
+
+      const matchesSearch =
+        name.includes(keyword) ||
+        description.includes(keyword) ||
+        category.includes(keyword);
+
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        product.category === selectedCategory;
+
+
+      return (
+        matchesSearch &&
+        matchesCategory
+      );
+
+    });
 
 
   productCount.textContent =
@@ -188,46 +342,56 @@ function renderProducts() {
         const imageHTML =
           product.image_url
 
-            ? `
-              <img
-                class="product-image"
-                src="${product.image_url}"
-                alt="${product.product_name}"
-                loading="lazy"
-              >
-            `
+          ? `
+            <img
+              class="product-image"
+              src="${product.image_url}"
+              alt="${product.product_name}"
+              loading="lazy"
+            >
+          `
 
-            : `
-              <div class="product-image-placeholder">
-                ${getCategoryIcon(product.category)}
-              </div>
-            `;
+          : `
+            <div
+              class="product-image-placeholder"
+            >
+              ${getCategoryIcon(
+                product.category
+              )}
+            </div>
+          `;
 
 
         const stockText =
           product.stock > 0
-
             ? `Stok ${product.stock}`
-
             : "Stok habis";
 
 
         return `
+
           <article class="product-card">
 
             ${imageHTML}
 
+
             <div class="product-info">
 
-              <span class="product-category">
+              <span
+                class="product-category"
+              >
                 ${product.category}
               </span>
+
 
               <h3 class="product-name">
                 ${product.product_name}
               </h3>
 
-              <p class="product-description">
+
+              <p
+                class="product-description"
+              >
                 ${product.description}
               </p>
 
@@ -236,11 +400,18 @@ function renderProducts() {
 
                 <div>
 
-                  <strong class="product-price">
-                    ${formatRupiah(product.price)}
+                  <strong
+                    class="product-price"
+                  >
+                    ${formatRupiah(
+                      product.price
+                    )}
                   </strong>
 
-                  <span class="product-stock">
+
+                  <span
+                    class="product-stock"
+                  >
                     ${stockText}
                   </span>
 
@@ -250,8 +421,14 @@ function renderProducts() {
                 <button
                   type="button"
                   class="add-cart-button"
-                  onclick="addToCart('${product.product_id}')"
-                  ${product.stock <= 0 ? "disabled" : ""}
+                  onclick="addToCart(
+                    '${product.product_id}'
+                  )"
+                  ${
+                    product.stock <= 0
+                      ? "disabled"
+                      : ""
+                  }
                 >
                   + Keranjang
                 </button>
@@ -261,15 +438,17 @@ function renderProducts() {
             </div>
 
           </article>
+
         `;
 
       })
       .join("");
+
 }
 
 
 // ======================================================
-// 7. SEARCH
+// 8. SEARCH
 // ======================================================
 
 searchInput.addEventListener(
@@ -279,7 +458,7 @@ searchInput.addEventListener(
 
 
 // ======================================================
-// 8. CATEGORY FILTER
+// 9. CATEGORY FILTER
 // ======================================================
 
 categoryList.addEventListener(
@@ -287,7 +466,9 @@ categoryList.addEventListener(
   function(event) {
 
     const button =
-      event.target.closest(".category-button");
+      event.target.closest(
+        ".category-button"
+      );
 
 
     if (!button) {
@@ -296,15 +477,21 @@ categoryList.addEventListener(
 
 
     document
-      .querySelectorAll(".category-button")
+      .querySelectorAll(
+        ".category-button"
+      )
       .forEach(item => {
 
-        item.classList.remove("active");
+        item.classList.remove(
+          "active"
+        );
 
       });
 
 
-    button.classList.add("active");
+    button.classList.add(
+      "active"
+    );
 
 
     selectedCategory =
@@ -318,14 +505,15 @@ categoryList.addEventListener(
 
 
 // ======================================================
-// 9. ADD TO CART
+// 10. ADD TO CART
 // ======================================================
 
 function addToCart(productId) {
 
   const product =
     products.find(
-      item => item.product_id === productId
+      item =>
+        item.product_id === productId
     );
 
 
@@ -334,31 +522,60 @@ function addToCart(productId) {
   }
 
 
+  if (product.stock <= 0) {
+
+    alert(
+      "Produk sedang habis."
+    );
+
+    return;
+  }
+
+
   const existingItem =
     cart.find(
-      item => item.product_id === productId
+      item =>
+        item.product_id === productId
     );
 
 
   if (existingItem) {
 
-    if (existingItem.quantity >= product.stock) {
+    if (
+      existingItem.quantity >=
+      product.stock
+    ) {
 
-      alert("Jumlah melebihi stok yang tersedia.");
+      alert(
+        "Jumlah melebihi stok yang tersedia."
+      );
 
       return;
     }
 
+
     existingItem.quantity++;
 
-  } else {
+  }
+
+  else {
 
     cart.push({
-      product_id: product.product_id,
-      product_name: product.product_name,
-      price: product.price,
-      image_url: product.image_url,
+
+      product_id:
+        product.product_id,
+
+      product_name:
+        product.product_name,
+
+      price:
+        product.price,
+
+      image_url:
+        product.image_url,
+
       quantity: 1
+
     });
 
   }
@@ -369,11 +586,72 @@ function addToCart(productId) {
   renderCart();
 
   openCart();
+
 }
 
 
 // ======================================================
-// 10. SAVE CART
+// 11. SINKRONKAN CART DENGAN SHEET
+// ======================================================
+
+function syncCartWithProducts() {
+
+  cart =
+    cart
+      .map(cartItem => {
+
+        const latestProduct =
+          products.find(
+            product =>
+              product.product_id ===
+              cartItem.product_id
+          );
+
+
+        if (
+          !latestProduct ||
+          !latestProduct.active ||
+          latestProduct.stock <= 0
+        ) {
+
+          return null;
+
+        }
+
+
+        return {
+
+          product_id:
+            latestProduct.product_id,
+
+          product_name:
+            latestProduct.product_name,
+
+          price:
+            latestProduct.price,
+
+          image_url:
+            latestProduct.image_url,
+
+          quantity:
+            Math.min(
+              cartItem.quantity,
+              latestProduct.stock
+            )
+
+        };
+
+      })
+      .filter(Boolean);
+
+
+  saveCart();
+
+}
+
+
+// ======================================================
+// 12. SAVE CART
 // ======================================================
 
 function saveCart() {
@@ -387,14 +665,18 @@ function saveCart() {
 
 
 // ======================================================
-// 11. HITUNG TOTAL CART
+// 13. TOTAL CART
 // ======================================================
 
 function calculateCartTotal() {
 
   return cart.reduce(
     (total, item) =>
-      total + (item.price * item.quantity),
+      total +
+      (
+        item.price *
+        item.quantity
+      ),
     0
   );
 
@@ -402,7 +684,7 @@ function calculateCartTotal() {
 
 
 // ======================================================
-// 12. RENDER CART
+// 14. RENDER CART
 // ======================================================
 
 function renderCart() {
@@ -415,7 +697,8 @@ function renderCart() {
     );
 
 
-  cartCount.textContent = totalQuantity;
+  cartCount.textContent =
+    totalQuantity;
 
 
   const totalPrice =
@@ -433,6 +716,7 @@ function renderCart() {
   if (cart.length === 0) {
 
     cartItems.innerHTML = `
+
       <div class="empty-cart">
 
         <span>🛒</span>
@@ -442,6 +726,7 @@ function renderCart() {
         </p>
 
       </div>
+
     `;
 
     return;
@@ -452,37 +737,71 @@ function renderCart() {
     cart
       .map(item => {
 
-        return `
-          <div class="cart-item">
+        const imageHTML =
+          item.image_url
 
-            <div class="product-image-placeholder cart-item-image">
+          ? `
+            <img
+              src="${item.image_url}"
+              class="cart-item-image"
+              alt="${item.product_name}"
+            >
+          `
+
+          : `
+            <div
+              class="
+                product-image-placeholder
+                cart-item-image
+              "
+            >
               ✨
             </div>
+          `;
+
+
+        return `
+
+          <div class="cart-item">
+
+            ${imageHTML}
 
 
             <div>
 
-              <div class="cart-item-name">
+              <div
+                class="cart-item-name"
+              >
                 ${item.product_name}
               </div>
 
-              <div class="cart-item-price">
-                ${formatRupiah(item.price)}
+
+              <div
+                class="cart-item-price"
+              >
+                ${formatRupiah(
+                  item.price
+                )}
               </div>
 
-              <div style="
-                margin-top:8px;
-                display:flex;
-                align-items:center;
-                gap:8px;
-              ">
+
+              <div
+                style="
+                  margin-top:8px;
+                  display:flex;
+                  align-items:center;
+                  gap:8px;
+                "
+              >
 
                 <button
                   type="button"
-                  onclick="changeQuantity(
-                    '${item.product_id}',
-                    -1
-                  )"
+                  onclick="
+                    changeQuantity(
+                      '${item.product_id}',
+                      -1
+                    )
+                  "
                 >
                   −
                 </button>
@@ -495,10 +814,12 @@ function renderCart() {
 
                 <button
                   type="button"
-                  onclick="changeQuantity(
-                    '${item.product_id}',
-                    1
-                  )"
+                  onclick="
+                    changeQuantity(
+                      '${item.product_id}',
+                      1
+                    )
+                  "
                 >
                   +
                 </button>
@@ -506,9 +827,11 @@ function renderCart() {
 
                 <button
                   type="button"
-                  onclick="removeFromCart(
-                    '${item.product_id}'
-                  )"
+                  onclick="
+                    removeFromCart(
+                      '${item.product_id}'
+                    )
+                  "
                   style="
                     margin-left:auto;
                     border:0;
@@ -524,6 +847,7 @@ function renderCart() {
             </div>
 
           </div>
+
         `;
 
       })
@@ -533,44 +857,65 @@ function renderCart() {
 
 
 // ======================================================
-// 13. UBAH JUMLAH PRODUK
+// 15. UBAH QUANTITY
 // ======================================================
 
-function changeQuantity(productId, change) {
+function changeQuantity(
+  productId,
+  change
+) {
 
   const cartItem =
     cart.find(
-      item => item.product_id === productId
+      item =>
+        item.product_id === productId
     );
 
 
   const product =
     products.find(
-      item => item.product_id === productId
+      item =>
+        item.product_id === productId
     );
 
 
-  if (!cartItem || !product) {
+  if (
+    !cartItem ||
+    !product
+  ) {
+
     return;
+
   }
 
 
   cartItem.quantity += change;
 
 
-  if (cartItem.quantity <= 0) {
+  if (
+    cartItem.quantity <= 0
+  ) {
 
-    removeFromCart(productId);
+    removeFromCart(
+      productId
+    );
 
     return;
   }
 
 
-  if (cartItem.quantity > product.stock) {
+  if (
+    cartItem.quantity >
+    product.stock
+  ) {
 
-    cartItem.quantity = product.stock;
+    cartItem.quantity =
+      product.stock;
 
-    alert("Jumlah maksimal sesuai stok.");
+
+    alert(
+      "Jumlah maksimal sesuai stok."
+    );
 
   }
 
@@ -578,42 +923,58 @@ function changeQuantity(productId, change) {
   saveCart();
 
   renderCart();
+
 }
 
 
 // ======================================================
-// 14. HAPUS CART
+// 16. HAPUS PRODUK CART
 // ======================================================
 
-function removeFromCart(productId) {
+function removeFromCart(
+  productId
+) {
 
-  cart = cart.filter(
-    item => item.product_id !== productId
-  );
+  cart =
+    cart.filter(
+      item =>
+        item.product_id !== productId
+    );
 
 
   saveCart();
 
   renderCart();
+
 }
 
 
 // ======================================================
-// 15. OPEN / CLOSE CART
+// 17. OPEN / CLOSE CART
 // ======================================================
 
 function openCart() {
 
-  cartDrawer.classList.add("active");
-  cartOverlay.classList.add("active");
+  cartDrawer.classList.add(
+    "active"
+  );
+
+  cartOverlay.classList.add(
+    "active"
+  );
 
 }
 
 
 function closeCart() {
 
-  cartDrawer.classList.remove("active");
-  cartOverlay.classList.remove("active");
+  cartDrawer.classList.remove(
+    "active"
+  );
+
+  cartOverlay.classList.remove(
+    "active"
+  );
 
 }
 
@@ -637,7 +998,7 @@ cartOverlay.addEventListener(
 
 
 // ======================================================
-// 16. CHECKOUT MODAL
+// 18. CHECKOUT
 // ======================================================
 
 checkoutButton.addEventListener(
@@ -646,15 +1007,21 @@ checkoutButton.addEventListener(
 
     if (cart.length === 0) {
 
-      alert("Keranjang masih kosong.");
+      alert(
+        "Keranjang masih kosong."
+      );
 
       return;
+
     }
 
 
     closeCart();
 
-    checkoutModal.classList.add("active");
+
+    checkoutModal.classList.add(
+      "active"
+    );
 
   }
 );
@@ -664,14 +1031,16 @@ closeCheckoutButton.addEventListener(
   "click",
   function() {
 
-    checkoutModal.classList.remove("active");
+    checkoutModal.classList.remove(
+      "active"
+    );
 
   }
 );
 
 
 // ======================================================
-// 17. CHECKOUT SEMENTARA
+// 19. CHECKOUT SEMENTARA
 // ======================================================
 
 checkoutForm.addEventListener(
@@ -682,9 +1051,9 @@ checkoutForm.addEventListener(
 
 
     alert(
-      "Form checkout sudah bekerja! ✅\n\n" +
-      "Pada tahap berikutnya pesanan ini " +
-      "akan kita kirim ke Google Sheets."
+      "Produk sudah berasal dari Google Sheets ✅\n\n" +
+      "Berikutnya kita akan membuat order " +
+      "benar-benar masuk ke sheet ORDERS."
     );
 
   }
@@ -692,9 +1061,7 @@ checkoutForm.addEventListener(
 
 
 // ======================================================
-// 18. START WEBSITE
+// 20. START WEBSITE
 // ======================================================
 
-renderProducts();
-
-renderCart();
+loadProducts();
