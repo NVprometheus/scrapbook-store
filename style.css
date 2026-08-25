@@ -787,3 +787,258 @@ footer {
   }
 
 }
+
+/* =========================
+   REFERENCE CAROUSEL
+========================= */
+
+.reference-button {
+  border: 1px solid #eadcd7;
+  background: white;
+  color: #6d5d58;
+
+  border-radius: 999px;
+
+  padding: 11px 18px;
+
+  font-weight: 700;
+
+  transition: 0.2s ease;
+}
+
+.reference-button:hover {
+  background: #f7e8e4;
+  color: #a85d69;
+}
+
+
+/* Modal referensi lebih lebar */
+.reference-carousel-card {
+  width: min(760px, 100%);
+}
+
+
+/* Deskripsi */
+.reference-description {
+  color: #81706a;
+
+  margin-top: -10px;
+  margin-bottom: 18px;
+}
+
+
+/* Loading */
+.reference-loading {
+  padding: 50px 20px;
+
+  text-align: center;
+
+  color: #8b7b76;
+}
+
+
+/* Area carousel */
+.reference-carousel {
+  position: relative;
+
+  display: none;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 12px;
+}
+
+
+/* Area gambar */
+.reference-image-wrapper {
+  width: 100%;
+
+  height: min(68vh, 650px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background: #f4ece8;
+
+  border-radius: 20px;
+}
+
+
+/* Gambar referensi */
+.reference-image {
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
+  border-radius: 20px;
+
+  user-select: none;
+}
+
+
+/* Judul foto */
+.reference-title {
+  margin-top: 15px;
+
+  text-align: center;
+
+  color: #55423d;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 18px;
+}
+
+
+/* Tombol kiri kanan */
+.carousel-arrow {
+  flex: 0 0 auto;
+
+  width: 44px;
+  height: 44px;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background: #5f7161;
+  color: white;
+
+  font-size: 30px;
+
+  display: grid;
+  place-items: center;
+
+  transition: 0.2s ease;
+
+  box-shadow:
+    0 5px 15px
+    rgba(50, 40, 35, 0.15);
+}
+
+.carousel-arrow:hover {
+  transform: scale(1.06);
+}
+
+
+/* Dot navigation */
+.reference-dots {
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 8px;
+
+  margin-top: 14px;
+}
+
+
+.reference-dot {
+  width: 9px;
+  height: 9px;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background: #d9cbc5;
+
+  transition: 0.2s ease;
+}
+
+
+.reference-dot.active {
+  width: 24px;
+
+  border-radius: 999px;
+
+  background: #b76e79;
+}
+
+
+/* Counter 1 / 4 */
+.reference-counter {
+  margin-top: 8px;
+
+  text-align: center;
+
+  color: #8b7b76;
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+  .reference-button {
+    padding: 9px 11px;
+
+    font-size: 13px;
+  }
+
+
+  .reference-carousel-card {
+    padding: 16px;
+  }
+
+
+  .reference-description {
+    font-size: 14px;
+  }
+
+
+  .reference-image-wrapper {
+    height: 62vh;
+
+    border-radius: 16px;
+  }
+
+
+  .reference-image {
+    border-radius: 16px;
+  }
+
+
+  .carousel-arrow {
+    position: absolute;
+
+    z-index: 2;
+
+    width: 38px;
+    height: 38px;
+
+    background:
+      rgba(95, 113, 97, 0.90);
+  }
+
+
+  .carousel-prev {
+    left: 8px;
+  }
+
+
+  .carousel-next {
+    right: 8px;
+  }
+
+
+  .reference-title {
+    font-size: 16px;
+  }
+
+}
