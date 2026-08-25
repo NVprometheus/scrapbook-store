@@ -756,11 +756,6 @@ footer {
     gap: 12px;
   }
 
-  .product-card .product-image,
-  .product-card .product-image-placeholder {
-    height: 120px;
-  }
-
   .product-info {
     padding: 13px;
   }
