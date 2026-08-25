@@ -325,18 +325,18 @@ img {
 
 .product-image {
   width: 100%;
-  height: 180px;
+  height: 150px;
   object-fit: cover;
   background: #f6eee9;
 }
-}
 
 .product-image-placeholder {
-  height: 180px;
+  width: 100%;
+  height: 150px;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #f5dfdc, #eef2e7);
-  font-size: 40px;
+  font-size: 36px;
 }
 
 .product-info {
@@ -683,14 +683,10 @@ footer {
   .header-content {
     min-height: 68px;
   }
-.product-image,
-.product-image-placeholder {
-  height: 140px;
-}
+
   .brand-logo {
-  width: 42px;
-  height: 42px;
-}
+    width: 42px;
+    height: 42px;
   }
 
   .brand h1 {
@@ -759,6 +755,11 @@ footer {
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  .product-card .product-image,
+  .product-card .product-image-placeholder {
+    height: 120px;
   }
 
   .product-info {
