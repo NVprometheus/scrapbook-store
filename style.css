@@ -670,7 +670,17 @@ footer {
 ========================= */
 
 @media (max-width: 600px) {
+.hero-actions {
+  gap: 10px;
+}
 
+
+.primary-button,
+.hero-reference-button {
+  flex: 1;
+
+  min-width: 140px;
+}
   .container {
     width: min(100% - 24px, 1120px);
   }
@@ -1041,4 +1051,40 @@ footer {
     font-size: 16px;
   }
 
+}
+/* =========================
+   HERO ACTIONS
+========================= */
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+
+.hero-reference-button {
+  min-height: 48px;
+
+  padding: 12px 24px;
+
+  border: 1px solid #b76e79;
+
+  border-radius: 999px;
+
+  background: white;
+
+  color: #b76e79;
+
+  font-weight: 700;
+
+  transition: 0.2s ease;
+}
+
+
+.hero-reference-button:hover {
+  background: #f8e7e7;
+
+  transform: translateY(-2px);
 }
