@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Toko online scrapbook, journal, sticker, paper dan dekorasi."
+  >
+
+  <title>Scrapbook Store</title>
+
+  <!-- File desain website -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- =========================
+       HEADER
+  ========================== -->
+  <header class="site-header">
+
+    <div class="container header-content">
+
+      <a href="#" class="brand">
+        <span class="brand-icon">✂️</span>
+
+        <div>
+          <h1 id="storeName">Scrapbook Store</h1>
+          <small>Little things, beautiful memories.</small>
+        </div>
+      </a>
+
+
+      <div class="header-actions">
+
+        <button
+          type="button"
+          class="cart-button"
+          id="openCartButton"
+        >
+          🛒
+          <span>Keranjang</span>
+
+          <span
+            class="cart-count"
+            id="cartCount"
+          >
+            0
+          </span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+
+  <!-- =========================
+       HERO / BANNER
+  ========================== -->
+  <main>
+
+    <section class="hero">
+
+      <div class="container hero-content">
+
+        <div class="hero-text">
+
+          <span class="hero-label">
+            ✨ Scrapbook Collection
+          </span>
+
+          <h2>
+            Buat setiap kenangan
+            menjadi lebih indah.
+          </h2>
+
+          <p>
+            Temukan paper, sticker, journal,
+            printable dan berbagai dekorasi
+            pilihan untuk scrapbook favoritmu.
+          </p>
+
+          <a
+            href="#products"
+            class="primary-button"
+          >
+            Lihat Koleksi
+          </a>
+
+        </div>
+
+
+        <div
+          class="hero-decoration"
+          aria-hidden="true"
+        >
+          🌸 📖 ✨
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         SEARCH
+    ========================== -->
+    <section class="shop-tools">
+
+      <div class="container">
+
+        <div class="search-box">
+
+          <span>🔎</span>
+
+          <input
+            type="search"
+            id="searchInput"
+            placeholder="Cari paper, sticker, journal..."
+            autocomplete="off"
+          >
+
+        </div>
+
+
+        <!-- CATEGORY -->
+        <div
+          class="category-list"
+          id="categoryList"
+        >
+
+          <button
+            type="button"
+            class="category-button active"
+            data-category="all"
+          >
+            Semua
+          </button>
+
+          <button
+            type="button"
+            class="category-button"
+            data-category="Paper"
+          >
+            Paper
+          </button>
+
+          <button
+            type="button"
+            class="category-button"
+            data-category="Sticker"
+          >
+            Sticker
+          </button>
+
+          <button
+            type="button"
+            class="category-button"
+            data-category="Journal"
+          >
+            Journal
+          </button>
+
+          <button
+            type="button"
+            class="category-button"
+            data-category="Decoration"
+          >
+            Decoration
+          </button>
+
+          <button
+            type="button"
+            class="category-button"
+            data-category="Printable"
+          >
+            Printable
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         PRODUCTS
+    ========================== -->
+    <section
+      class="products-section"
+      id="products"
+    >
+
+      <div class="container">
+
+        <div class="section-heading">
+
+          <div>
+            <span class="section-label">
+              Our Collection
+            </span>
+
+            <h2>
+              Pilihan Untuk Scrapbookmu
+            </h2>
+          </div>
+
+
+          <p id="productCount">
+            Memuat produk...
+          </p>
+
+        </div>
+
+
+
+        <!--
+          NANTI PRODUK DARI GOOGLE SHEETS
+          AKAN DIMASUKKAN KE SINI
+          OLEH app.js
+        -->
+
+        <div
+          class="product-grid"
+          id="productGrid"
+        >
+
+          <div class="loading-message">
+            Memuat koleksi...
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+  <!-- =========================
+       CART
+  ========================== -->
+  <div
+    class="cart-overlay"
+    id="cartOverlay"
+  ></div>
+
+
+  <aside
+    class="cart-drawer"
+    id="cartDrawer"
+  >
+
+    <div class="cart-header">
+
+      <div>
+        <span class="section-label">
+          Your Cart
+        </span>
+
+        <h2>Keranjang</h2>
+      </div>
+
+
+      <button
+        type="button"
+        class="close-button"
+        id="closeCartButton"
+        aria-label="Tutup keranjang"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <div
+      class="cart-items"
+      id="cartItems"
+    >
+
+      <div class="empty-cart">
+        <span>🛒</span>
+
+        <p>
+          Keranjangmu masih kosong.
+        </p>
+      </div>
+
+    </div>
+
+
+    <div class="cart-footer">
+
+      <div class="cart-total">
+
+        <span>Total</span>
+
+        <strong id="cartTotal">
+          Rp0
+        </strong>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="checkout-button"
+        id="checkoutButton"
+      >
+        Lanjut Checkout
+      </button>
+
+    </div>
+
+  </aside>
+
+
+
+  <!-- =========================
+       CHECKOUT MODAL
+  ========================== -->
+  <div
+    class="modal"
+    id="checkoutModal"
+  >
+
+    <div class="modal-card">
+
+      <div class="modal-header">
+
+        <div>
+          <span class="section-label">
+            Checkout
+          </span>
+
+          <h2>Data Pemesan</h2>
+        </div>
+
+
+        <button
+          type="button"
+          class="close-button"
+          id="closeCheckoutButton"
+        >
+          ✕
+        </button>
+
+      </div>
+
+
+
+      <form id="checkoutForm">
+
+        <div class="form-group">
+
+          <label for="customerName">
+            Nama
+          </label>
+
+          <input
+            type="text"
+            id="customerName"
+            required
+            placeholder="Nama lengkap"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="customerWhatsapp">
+            Nomor WhatsApp
+          </label>
+
+          <input
+            type="tel"
+            id="customerWhatsapp"
+            required
+            placeholder="08xxxxxxxxxx"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="customerAddress">
+            Alamat
+          </label>
+
+          <textarea
+            id="customerAddress"
+            required
+            rows="4"
+            placeholder="Alamat lengkap pengiriman"
+          ></textarea>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="paymentMethod">
+            Metode Pembayaran
+          </label>
+
+          <select
+            id="paymentMethod"
+            required
+          >
+
+            <option value="">
+              Pilih metode pembayaran
+            </option>
+
+            <option value="Transfer Bank">
+              Transfer Bank
+            </option>
+
+            <option value="QRIS">
+              QRIS
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="customerNotes">
+            Catatan
+          </label>
+
+          <textarea
+            id="customerNotes"
+            rows="3"
+            placeholder="Opsional"
+          ></textarea>
+
+        </div>
+
+
+        <div class="checkout-summary">
+
+          <span>Total Pesanan</span>
+
+          <strong id="checkoutTotal">
+            Rp0
+          </strong>
+
+        </div>
+
+
+        <button
+          type="submit"
+          class="submit-order-button"
+        >
+          Buat Pesanan
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+  <footer>
+
+    <div class="container footer-content">
+
+      <div>
+        <strong>
+          ✂️ Scrapbook Store
+        </strong>
+
+        <p>
+          Create memories. Keep them forever.
+        </p>
+      </div>
+
+
+      <p>
+        © 2026 Scrapbook Store
+      </p>
+
+    </div>
+
+  </footer>
+
+
+
+  <!-- File fungsi website -->
+  <script src="app.js"></script>
+
+</body>
+</html>
