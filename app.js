@@ -1579,3 +1579,287 @@ document.addEventListener(
 );
 loadProducts();
 loadReferences();
+
+// ===== REFERENCES INSTAGRAM FEED =====
+const referencesState = {
+  all: [],
+  currentViewId: null,
+  currentImageIndex: 0,
+  touchStartX: 0,
+  touchEndX: 0,
+  isModalOpen: false
+};
+
+async function loadReferencesInstaFeed() {
+  const section = document.getElementById('references-section');
+  const grid = document.getElementById('references-grid');
+  const loading = document.getElementById('references-loading');
+  const empty = document.getElementById('references-empty');
+
+  if (!section || !grid) {
+    console.error('References feed HTML component tidak ditemukan');
+    return;
+  }
+
+  try {
+    loading.style.display = 'block';
+    grid.innerHTML = '';
+
+    const response = await fetch(`${API_BASE_URL}?action=references`);
+    const data = await response.json();
+
+    if (!data.success || !Array.isArray(data.references)) {
+      throw new Error('Failed to load references');
+    }
+
+    referencesState.all = data.references;
+
+    if (referencesState.all.length === 0) {
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+      section.style.display = 'block';
+      return;
+    }
+
+    renderReferencesGrid(referencesState.all, grid);
+    section.style.display = 'block';
+    loading.style.display = 'none';
+    empty.style.display = 'none';
+
+  } catch (error) {
+    console.error('Error loading references:', error);
+    loading.style.display = 'none';
+    empty.style.display = 'block';
+    section.style.display = 'block';
+  }
+}
+
+function renderReferencesGrid(references, container) {
+  container.innerHTML = references.map(ref => {
+    const imageUrls = parseImageUrls(ref.image_urls || ref.image_url);
+    const hasMultiple = imageUrls.length > 1;
+    const hasDescription = ref.description && ref.description.trim();
+
+    return `
+      <div class="reference-card ${hasMultiple ? 'has-multiple' : ''}" 
+           onclick="openReferencesModal('${ref.reference_id}')"
+           tabindex="0"
+           role="button"
+           aria-label="${ref.title}">
+        <div class="reference-card-image-container">
+          <img 
+            class="reference-card-image"
+            src="${imageUrls[0]}" 
+            alt="${ref.title}"
+            loading="lazy"
+            onload="this.parentElement.style.background='transparent'"
+          />
+        </div>
+        ${hasMultiple ? `<div class="reference-card-multi-badge">📸 ${imageUrls.length} images</div>` : ''}
+        <div class="reference-card-overlay">
+          <h3 class="reference-card-title">${escapeHtml(ref.title)}</h3>
+          ${hasDescription ? `<p class="reference-card-description">${escapeHtml(ref.description)}</p>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.reference-card').forEach(card => {
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
+  });
+}
+
+function parseImageUrls(urlString) {
+  if (!urlString) return [];
+  return String(urlString)
+    .split(',')
+    .map(url => url.trim())
+    .filter(url => url.length > 0);
+}
+
+function openReferencesModal(referenceId) {
+  const reference = referencesState.all.find(r => r.reference_id === referenceId);
+  if (!reference) return;
+
+  referencesState.currentViewId = referenceId;
+  referencesState.currentImageIndex = 0;
+
+  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
+  const hasMultiple = imageUrls.length > 1;
+
+  document.getElementById('references-modal-title').textContent = reference.title;
+  document.getElementById('references-modal-description').textContent = 
+    reference.description || 'Referensi inspirasi desain scrapbook';
+  
+  document.getElementById('references-modal-image').src = imageUrls[0];
+  document.getElementById('references-image-counter').textContent = `1/${imageUrls.length}`;
+
+  const carouselControls = document.getElementById('references-carousel-controls');
+  if (hasMultiple) {
+    carouselControls.style.display = 'flex';
+    renderCarouselDots(imageUrls.length);
+  } else {
+    carouselControls.style.display = 'none';
+  }
+
+  const modal = document.getElementById('references-modal');
+  modal.style.display = 'flex';
+  referencesState.isModalOpen = true;
+
+  setupModalInteractions();
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReferencesModal() {
+  const modal = document.getElementById('references-modal');
+  modal.style.display = 'none';
+  referencesState.isModalOpen = false;
+  referencesState.currentViewId = null;
+  document.body.style.overflow = '';
+}
+
+function nextReferenceImage() {
+  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
+  if (!reference) return;
+
+  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
+  const maxIndex = imageUrls.length - 1;
+
+  if (referencesState.currentImageIndex < maxIndex) {
+    referencesState.currentImageIndex++;
+    updateModalImage(reference, imageUrls);
+  }
+}
+
+function prevReferenceImage() {
+  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
+  if (!reference) return;
+
+  if (referencesState.currentImageIndex > 0) {
+    referencesState.currentImageIndex--;
+    const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
+    updateModalImage(reference, imageUrls);
+  }
+}
+
+function goToReferenceImage(index) {
+  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
+  if (!reference) return;
+
+  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
+  if (index >= 0 && index < imageUrls.length) {
+    referencesState.currentImageIndex = index;
+    updateModalImage(reference, imageUrls);
+  }
+}
+
+function updateModalImage(reference, imageUrls) {
+  const idx = referencesState.currentImageIndex;
+  document.getElementById('references-modal-image').src = imageUrls[idx];
+  document.getElementById('references-image-counter').textContent = `${idx + 1}/${imageUrls.length}`;
+  document.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === idx);
+  });
+}
+
+function renderCarouselDots(count) {
+  const container = document.getElementById('references-carousel-dots');
+  container.innerHTML = Array.from({ length: count }, (_, i) => `
+    <div class="carousel-dot ${i === 0 ? 'active' : ''}" 
+         onclick="goToReferenceImage(${i})"
+         role="button"
+         tabindex="0"
+         aria-label="Go to image ${i + 1}"></div>
+  `).join('');
+
+  container.querySelectorAll('.carousel-dot').forEach(dot => {
+    dot.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        dot.click();
+      }
+    });
+  });
+}
+
+function setupModalInteractions() {
+  const modal = document.getElementById('references-modal');
+  const newModal = modal.cloneNode(true);
+  modal.parentElement.replaceChild(newModal, modal);
+
+  const overlay = newModal.querySelector('.references-modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', closeReferencesModal);
+  }
+
+  document.addEventListener('keydown', handleModalKeyboard, { once: true });
+
+  const carouselWrapper = newModal.querySelector('.references-carousel-wrapper');
+  if (carouselWrapper) {
+    carouselWrapper.addEventListener('touchstart', handleTouchStart, false);
+    carouselWrapper.addEventListener('touchend', handleTouchEnd, false);
+  }
+}
+
+function handleModalKeyboard(e) {
+  if (!referencesState.isModalOpen) return;
+
+  switch (e.key) {
+    case 'Escape':
+      closeReferencesModal();
+      break;
+    case 'ArrowRight':
+      nextReferenceImage();
+      break;
+    case 'ArrowLeft':
+      prevReferenceImage();
+      break;
+  }
+
+  if (referencesState.isModalOpen) {
+    document.addEventListener('keydown', handleModalKeyboard);
+  }
+}
+
+function handleTouchStart(e) {
+  referencesState.touchStartX = e.changedTouches[0].screenX;
+}
+
+function handleTouchEnd(e) {
+  referencesState.touchEndX = e.changedTouches[0].screenX;
+
+  if (!referencesState.isModalOpen) return;
+
+  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
+  if (!reference) return;
+
+  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
+  const minSwipeDistance = 50;
+  const difference = referencesState.touchStartX - referencesState.touchEndX;
+
+  if (Math.abs(difference) > minSwipeDistance) {
+    if (difference > 0) {
+      nextReferenceImage();
+    } else {
+      prevReferenceImage();
+    }
+  }
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('references-modal');
+  if (e.target === modal) {
+    closeReferencesModal();
+  }
+});
