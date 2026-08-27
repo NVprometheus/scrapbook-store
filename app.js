@@ -3,7 +3,6 @@
 // Frontend Website
 // ======================================================
 
-
 // ======================================================
 // 1. API GOOGLE APPS SCRIPT
 // ======================================================
@@ -12,10 +11,11 @@ const API_URL =
   "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec";
 
 
-// Produk sekarang TIDAK ditulis di kode.
-// Data akan diambil dari Google Sheets.
-let products = [];
+// ======================================================
+// 2. GLOBAL STATE
+// ======================================================
 
+let products = [];
 let selectedCategory = "all";
 
 let cart =
@@ -25,7 +25,7 @@ let cart =
 
 
 // ======================================================
-// 2. ELEMENT HTML
+// 3. ELEMENT HTML
 // ======================================================
 
 const productGrid =
@@ -75,68 +75,48 @@ const closeCheckoutButton =
 
 const checkoutForm =
   document.getElementById("checkoutForm");
+
+
 // ======================================================
-// REFERENCE ELEMENTS
+// 4. REFERENCE LAMA
 // ======================================================
 
 const referenceModal =
-  document.getElementById(
-    "referenceModal"
-  );
+  document.getElementById("referenceModal");
 
 const openReferenceButton =
-  document.getElementById(
-    "openReferenceButton"
-  );
+  document.getElementById("openReferenceButton");
 
 const closeReferenceButton =
-  document.getElementById(
-    "closeReferenceButton"
-  );
+  document.getElementById("closeReferenceButton");
 
 const referenceImage =
-  document.getElementById(
-    "referenceImage"
-  );
+  document.getElementById("referenceImage");
 
 const referencePrev =
-  document.getElementById(
-    "referencePrev"
-  );
+  document.getElementById("referencePrev");
 
 const referenceNext =
-  document.getElementById(
-    "referenceNext"
-  );
+  document.getElementById("referenceNext");
 
 const referenceDots =
-  document.getElementById(
-    "referenceDots"
-  );
+  document.getElementById("referenceDots");
 
 const referenceCounter =
-  document.getElementById(
-    "referenceCounter"
-  );
+  document.getElementById("referenceCounter");
 
 const referenceTitle =
-  document.getElementById(
-    "referenceTitle"
-  );
+  document.getElementById("referenceTitle");
 
 const referenceLoading =
-  document.getElementById(
-    "referenceLoading"
-  );
+  document.getElementById("referenceLoading");
 
 const referenceCarousel =
-  document.getElementById(
-    "referenceCarousel"
-  );
+  document.getElementById("referenceCarousel");
 
 
 // ======================================================
-// 3. FORMAT RUPIAH
+// 5. FORMAT RUPIAH
 // ======================================================
 
 function formatRupiah(number) {
@@ -152,10 +132,11 @@ function formatRupiah(number) {
 
 
 // ======================================================
-// 4. ICON KATEGORI
+// 6. ICON KATEGORI
 // ======================================================
 
 function getCategoryIcon(category) {
+
   const icons = {
     Paper: "📜",
     Sticker: "🌸",
@@ -169,26 +150,35 @@ function getCategoryIcon(category) {
 
 
 // ======================================================
-// 5. AMBIL PRODUCTS DARI GOOGLE SHEETS
+// 7. AMBIL PRODUCTS DARI GOOGLE SHEETS
 // ======================================================
 
 async function loadProducts() {
-  productGrid.innerHTML = `
-    <div class="loading-message">
-      Memuat koleksi dari toko... ✨
-    </div>
-  `;
 
-  productCount.textContent = "Memuat produk...";
+  if (productGrid) {
+
+    productGrid.innerHTML = `
+      <div class="loading-message">
+        Memuat koleksi dari toko... ✨
+      </div>
+    `;
+  }
+
+  if (productCount) {
+    productCount.textContent = "Memuat produk...";
+  }
 
   try {
+
     const response =
       await fetch(
         `${API_URL}?action=products&t=${Date.now()}`
       );
 
     if (!response.ok) {
-      throw new Error("Gagal menghubungi server.");
+      throw new Error(
+        "Gagal menghubungi server."
+      );
     }
 
     const data =
@@ -206,18 +196,25 @@ async function loadProducts() {
         ? data.products
         : [];
 
-    products = products.map(product => ({
-      ...product,
+    products =
+      products.map(product => ({
 
-      price:
-        Number(product.price) || 0,
+        ...product,
 
-      stock:
-        Number(product.stock) || 0,
+        price:
+          Number(product.price) || 0,
 
-      active:
-        product.active === true
-    }));
+        stock:
+          Number(product.stock) || 0,
+
+        active:
+          product.active === true ||
+          product.active === "TRUE" ||
+          product.active === "true" ||
+          product.active === 1 ||
+          product.active === "1"
+
+      }));
 
     syncCartWithProducts();
 
@@ -226,33 +223,45 @@ async function loadProducts() {
     renderProducts();
 
     renderCart();
+
   }
 
   catch (error) {
+
     console.error(
       "LOAD PRODUCTS ERROR:",
       error
     );
 
-    productGrid.innerHTML = `
-      <div class="loading-message">
-        ⚠️ Produk belum dapat dimuat.
-        <br><br>
-        Coba refresh halaman.
-      </div>
-    `;
+    if (productGrid) {
 
-    productCount.textContent =
-      "Gagal memuat produk";
+      productGrid.innerHTML = `
+        <div class="loading-message">
+          ⚠️ Produk belum dapat dimuat.
+          <br><br>
+          Coba refresh halaman.
+        </div>
+      `;
+    }
+
+    if (productCount) {
+      productCount.textContent =
+        "Gagal memuat produk";
+    }
   }
 }
 
 
 // ======================================================
-// 6. CATEGORY DINAMIS
+// 8. CATEGORY DINAMIS
 // ======================================================
 
 function renderCategories() {
+
+  if (!categoryList) {
+    return;
+  }
+
   const categories = [
     ...new Set(
       products
@@ -263,9 +272,14 @@ function renderCategories() {
   ];
 
   categoryList.innerHTML = `
+
     <button
       type="button"
-      class="category-button active"
+      class="category-button ${
+        selectedCategory === "all"
+          ? "active"
+          : ""
+      }"
       data-category="all"
     >
       Semua
@@ -273,31 +287,46 @@ function renderCategories() {
 
     ${categories
       .map(category => `
+
         <button
           type="button"
-          class="category-button"
+          class="category-button ${
+            selectedCategory === category
+              ? "active"
+              : ""
+          }"
           data-category="${category}"
         >
-          ${category}
+          ${escapeHtml(category)}
         </button>
+
       `)
       .join("")}
+
   `;
 }
 
 
 // ======================================================
-// 7. TAMPILKAN PRODUCTS
+// 9. TAMPILKAN PRODUCTS
 // ======================================================
 
 function renderProducts() {
+
+  if (!productGrid) {
+    return;
+  }
+
   const keyword =
-    searchInput.value
-      .toLowerCase()
-      .trim();
+    searchInput
+      ? searchInput.value
+          .toLowerCase()
+          .trim()
+      : "";
 
   const filteredProducts =
     products.filter(product => {
+
       if (!product.active) {
         return false;
       }
@@ -332,10 +361,13 @@ function renderProducts() {
       );
     });
 
-  productCount.textContent =
-    `${filteredProducts.length} produk`;
+  if (productCount) {
+    productCount.textContent =
+      `${filteredProducts.length} produk`;
+  }
 
   if (filteredProducts.length === 0) {
+
     productGrid.innerHTML = `
       <div class="loading-message">
         Produk tidak ditemukan 😢
@@ -348,34 +380,45 @@ function renderProducts() {
   productGrid.innerHTML =
     filteredProducts
       .map(product => {
+
         const imageHTML =
           product.image_url
 
-          ? `
-            <img
-              class="product-image"
-              src="${product.image_url}"
-              alt="${product.product_name}"
-              loading="lazy"
-            >
-          `
+            ? `
+              <img
+                class="product-image"
+                src="${escapeAttribute(
+                  product.image_url
+                )}"
+                alt="${escapeAttribute(
+                  product.product_name
+                )}"
+                loading="lazy"
+              >
+            `
 
-          : `
-            <div
-              class="product-image-placeholder"
-            >
-              ${getCategoryIcon(
-                product.category
-              )}
-            </div>
-          `;
+            : `
+              <div
+                class="product-image-placeholder"
+              >
+                ${getCategoryIcon(
+                  product.category
+                )}
+              </div>
+            `;
 
         const stockText =
           product.stock > 0
             ? `Stok ${product.stock}`
             : "Stok habis";
 
+        const safeProductId =
+          escapeAttribute(
+            product.product_id
+          );
+
         return `
+
           <article class="product-card">
 
             ${imageHTML}
@@ -385,17 +428,21 @@ function renderProducts() {
               <span
                 class="product-category"
               >
-                ${product.category}
+                ${escapeHtml(
+                  product.category || ""
+                )}
               </span>
 
               <h3 class="product-name">
-                ${product.product_name}
+                ${escapeHtml(
+                  product.product_name || ""
+                )}
               </h3>
 
-              <p
-                class="product-description"
-              >
-                ${product.description}
+              <p class="product-description">
+                ${escapeHtml(
+                  product.description || ""
+                )}
               </p>
 
               <div class="product-footer">
@@ -421,9 +468,7 @@ function renderProducts() {
                 <button
                   type="button"
                   class="add-cart-button"
-                  onclick="addToCart(
-                    '${product.product_id}'
-                  )"
+                  onclick="addToCart('${safeProductId}')"
                   ${
                     product.stock <= 0
                       ? "disabled"
@@ -438,69 +483,85 @@ function renderProducts() {
             </div>
 
           </article>
+
         `;
+
       })
       .join("");
 }
 
 
 // ======================================================
-// 8. SEARCH
+// 10. SEARCH
 // ======================================================
 
-searchInput.addEventListener(
-  "input",
-  renderProducts
-);
+if (searchInput) {
+
+  searchInput.addEventListener(
+    "input",
+    renderProducts
+  );
+
+}
 
 
 // ======================================================
-// 9. CATEGORY FILTER
+// 11. CATEGORY FILTER
 // ======================================================
 
-categoryList.addEventListener(
-  "click",
-  function(event) {
-    const button =
-      event.target.closest(
-        ".category-button"
+if (categoryList) {
+
+  categoryList.addEventListener(
+    "click",
+    function(event) {
+
+      const button =
+        event.target.closest(
+          ".category-button"
+        );
+
+      if (!button) {
+        return;
+      }
+
+      document
+        .querySelectorAll(
+          ".category-button"
+        )
+        .forEach(item => {
+
+          item.classList.remove(
+            "active"
+          );
+
+        });
+
+      button.classList.add(
+        "active"
       );
 
-    if (!button) {
-      return;
+      selectedCategory =
+        button.dataset.category;
+
+      renderProducts();
+
     }
+  );
 
-    document
-      .querySelectorAll(
-        ".category-button"
-      )
-      .forEach(item => {
-        item.classList.remove(
-          "active"
-        );
-      });
-
-    button.classList.add(
-      "active"
-    );
-
-    selectedCategory =
-      button.dataset.category;
-
-    renderProducts();
-  }
-);
+}
 
 
 // ======================================================
-// 10. ADD TO CART
+// 12. ADD TO CART
 // ======================================================
 
 function addToCart(productId) {
+
   const product =
     products.find(
       item =>
-        item.product_id === productId
+        String(item.product_id) ===
+        String(productId)
     );
 
   if (!product) {
@@ -508,6 +569,7 @@ function addToCart(productId) {
   }
 
   if (product.stock <= 0) {
+
     alert(
       "Produk sedang habis."
     );
@@ -518,14 +580,17 @@ function addToCart(productId) {
   const existingItem =
     cart.find(
       item =>
-        item.product_id === productId
+        String(item.product_id) ===
+        String(productId)
     );
 
   if (existingItem) {
+
     if (
       existingItem.quantity >=
       product.stock
     ) {
+
       alert(
         "Jumlah melebihi stok yang tersedia."
       );
@@ -534,10 +599,13 @@ function addToCart(productId) {
     }
 
     existingItem.quantity++;
+
   }
 
   else {
+
     cart.push({
+
       product_id:
         product.product_id,
 
@@ -551,7 +619,9 @@ function addToCart(productId) {
         product.image_url,
 
       quantity: 1
+
     });
+
   }
 
   saveCart();
@@ -563,18 +633,20 @@ function addToCart(productId) {
 
 
 // ======================================================
-// 11. SINKRONKAN CART DENGAN SHEET
+// 13. SINKRONKAN CART DENGAN SHEET
 // ======================================================
 
 function syncCartWithProducts() {
+
   cart =
     cart
       .map(cartItem => {
+
         const latestProduct =
           products.find(
             product =>
-              product.product_id ===
-              cartItem.product_id
+              String(product.product_id) ===
+              String(cartItem.product_id)
           );
 
         if (
@@ -582,10 +654,13 @@ function syncCartWithProducts() {
           !latestProduct.active ||
           latestProduct.stock <= 0
         ) {
+
           return null;
+
         }
 
         return {
+
           product_id:
             latestProduct.product_id,
 
@@ -600,10 +675,12 @@ function syncCartWithProducts() {
 
           quantity:
             Math.min(
-              cartItem.quantity,
+              Number(cartItem.quantity) || 1,
               latestProduct.stock
             )
+
         };
+
       })
       .filter(Boolean);
 
@@ -612,60 +689,80 @@ function syncCartWithProducts() {
 
 
 // ======================================================
-// 12. SAVE CART
+// 14. SAVE CART
 // ======================================================
 
 function saveCart() {
+
   localStorage.setItem(
     "scrapbookCart",
     JSON.stringify(cart)
   );
+
 }
 
 
 // ======================================================
-// 13. TOTAL CART
+// 15. TOTAL CART
 // ======================================================
 
 function calculateCartTotal() {
+
   return cart.reduce(
     (total, item) =>
+
       total +
       (
-        item.price *
-        item.quantity
+        Number(item.price) *
+        Number(item.quantity)
       ),
+
     0
   );
+
 }
 
 
 // ======================================================
-// 14. RENDER CART
+// 16. RENDER CART
 // ======================================================
 
 function renderCart() {
+
+  if (!cartItems) {
+    return;
+  }
+
   const totalQuantity =
     cart.reduce(
       (total, item) =>
-        total + item.quantity,
+        total +
+        Number(item.quantity || 0),
       0
     );
 
-  cartCount.textContent =
-    totalQuantity;
+  if (cartCount) {
+    cartCount.textContent =
+      totalQuantity;
+  }
 
   const totalPrice =
     calculateCartTotal();
 
-  cartTotal.textContent =
-    formatRupiah(totalPrice);
+  if (cartTotal) {
+    cartTotal.textContent =
+      formatRupiah(totalPrice);
+  }
 
-  checkoutTotal.textContent =
-    formatRupiah(totalPrice);
+  if (checkoutTotal) {
+    checkoutTotal.textContent =
+      formatRupiah(totalPrice);
+  }
 
   if (cart.length === 0) {
+
     cartItems.innerHTML = `
+
       <div class="empty-cart">
 
         <span>🛒</span>
@@ -675,6 +772,7 @@ function renderCart() {
         </p>
 
       </div>
+
     `;
 
     return;
@@ -683,29 +781,40 @@ function renderCart() {
   cartItems.innerHTML =
     cart
       .map(item => {
+
         const imageHTML =
           item.image_url
 
-          ? `
-            <img
-              src="${item.image_url}"
-              class="cart-item-image"
-              alt="${item.product_name}"
-            >
-          `
+            ? `
+              <img
+                src="${escapeAttribute(
+                  item.image_url
+                )}"
+                class="cart-item-image"
+                alt="${escapeAttribute(
+                  item.product_name
+                )}"
+              >
+            `
 
-          : `
-            <div
-              class="
-                product-image-placeholder
-                cart-item-image
-              "
-            >
-              ✨
-            </div>
-          `;
+            : `
+              <div
+                class="
+                  product-image-placeholder
+                  cart-item-image
+                "
+              >
+                ✨
+              </div>
+            `;
+
+        const safeId =
+          escapeAttribute(
+            item.product_id
+          );
 
         return `
+
           <div class="cart-item">
 
             ${imageHTML}
@@ -715,7 +824,9 @@ function renderCart() {
               <div
                 class="cart-item-name"
               >
-                ${item.product_name}
+                ${escapeHtml(
+                  item.product_name || ""
+                )}
               </div>
 
               <div
@@ -739,7 +850,7 @@ function renderCart() {
                   type="button"
                   onclick="
                     changeQuantity(
-                      '${item.product_id}',
+                      '${safeId}',
                       -1
                     )
                   "
@@ -755,7 +866,7 @@ function renderCart() {
                   type="button"
                   onclick="
                     changeQuantity(
-                      '${item.product_id}',
+                      '${safeId}',
                       1
                     )
                   "
@@ -767,7 +878,7 @@ function renderCart() {
                   type="button"
                   onclick="
                     removeFromCart(
-                      '${item.product_id}'
+                      '${safeId}'
                     )
                   "
                   style="
@@ -785,37 +896,44 @@ function renderCart() {
             </div>
 
           </div>
+
         `;
+
       })
       .join("");
 }
 
 
 // ======================================================
-// 15. UBAH QUANTITY
+// 17. UBAH QUANTITY
 // ======================================================
 
 function changeQuantity(
   productId,
   change
 ) {
+
   const cartItem =
     cart.find(
       item =>
-        item.product_id === productId
+        String(item.product_id) ===
+        String(productId)
     );
 
   const product =
     products.find(
       item =>
-        item.product_id === productId
+        String(item.product_id) ===
+        String(productId)
     );
 
   if (
     !cartItem ||
     !product
   ) {
+
     return;
+
   }
 
   cartItem.quantity += change;
@@ -823,318 +941,393 @@ function changeQuantity(
   if (
     cartItem.quantity <= 0
   ) {
+
     removeFromCart(
       productId
     );
 
     return;
+
   }
 
   if (
     cartItem.quantity >
     product.stock
   ) {
+
     cartItem.quantity =
       product.stock;
 
     alert(
       "Jumlah maksimal sesuai stok."
     );
+
   }
 
   saveCart();
 
   renderCart();
+
 }
 
 
 // ======================================================
-// 16. HAPUS PRODUK CART
+// 18. HAPUS PRODUK CART
 // ======================================================
 
 function removeFromCart(
   productId
 ) {
+
   cart =
     cart.filter(
       item =>
-        item.product_id !== productId
+        String(item.product_id) !==
+        String(productId)
     );
 
   saveCart();
 
   renderCart();
+
 }
 
 
 // ======================================================
-// 17. OPEN / CLOSE CART
+// 19. OPEN / CLOSE CART
 // ======================================================
 
 function openCart() {
-  cartDrawer.classList.add(
-    "active"
-  );
 
-  cartOverlay.classList.add(
-    "active"
-  );
+  if (cartDrawer) {
+
+    cartDrawer.classList.add(
+      "active"
+    );
+
+  }
+
+  if (cartOverlay) {
+
+    cartOverlay.classList.add(
+      "active"
+    );
+
+  }
+
 }
+
 
 function closeCart() {
-  cartDrawer.classList.remove(
-    "active"
-  );
 
-  cartOverlay.classList.remove(
-    "active"
-  );
+  if (cartDrawer) {
+
+    cartDrawer.classList.remove(
+      "active"
+    );
+
+  }
+
+  if (cartOverlay) {
+
+    cartOverlay.classList.remove(
+      "active"
+    );
+
+  }
+
 }
 
-openCartButton.addEventListener(
-  "click",
-  openCart
-);
 
-closeCartButton.addEventListener(
-  "click",
-  closeCart
-);
+if (openCartButton) {
 
-cartOverlay.addEventListener(
-  "click",
-  closeCart
-);
+  openCartButton.addEventListener(
+    "click",
+    openCart
+  );
+
+}
 
 
-// ======================================================
-// 18. CHECKOUT
-// ======================================================
+if (closeCartButton) {
 
-checkoutButton.addEventListener(
-  "click",
-  function() {
-    if (cart.length === 0) {
-      alert(
-        "Keranjang masih kosong."
-      );
+  closeCartButton.addEventListener(
+    "click",
+    closeCart
+  );
 
-      return;
-    }
+}
 
-    closeCart();
 
-    checkoutModal.classList.add(
-      "active"
-    );
-  }
-);
+if (cartOverlay) {
 
-closeCheckoutButton.addEventListener(
-  "click",
-  function() {
-    checkoutModal.classList.remove(
-      "active"
-    );
-  }
-);
+  cartOverlay.addEventListener(
+    "click",
+    closeCart
+  );
+
+}
 
 
 // ======================================================
-// 19. CHECKOUT → GOOGLE SHEETS
+// 20. CHECKOUT
 // ======================================================
 
-checkoutForm.addEventListener(
-  "submit",
-  async function(event) {
+if (checkoutButton) {
 
-    event.preventDefault();
+  checkoutButton.addEventListener(
+    "click",
+    function() {
 
+      if (cart.length === 0) {
 
-    if (cart.length === 0) {
-
-      alert(
-        "Keranjang masih kosong."
-      );
-
-      return;
-
-    }
-
-
-    const submitButton =
-      checkoutForm.querySelector(
-        ".submit-order-button"
-      );
-
-
-    const originalText =
-      submitButton.textContent;
-
-
-    submitButton.disabled = true;
-
-    submitButton.textContent =
-      "Memproses pesanan...";
-
-
-    try {
-
-      const payload = {
-
-        action: "createOrder",
-
-        customer_name:
-          document
-            .getElementById(
-              "customerName"
-            )
-            .value
-            .trim(),
-
-        whatsapp:
-          document
-            .getElementById(
-              "customerWhatsapp"
-            )
-            .value
-            .trim(),
-
-        address:
-          document
-            .getElementById(
-              "customerAddress"
-            )
-            .value
-            .trim(),
-
-        payment_method:
-          document
-            .getElementById(
-              "paymentMethod"
-            )
-            .value,
-
-        notes:
-          document
-            .getElementById(
-              "customerNotes"
-            )
-            .value
-            .trim(),
-
-        items:
-          cart.map(item => ({
-
-            product_id:
-              item.product_id,
-
-            quantity:
-              item.quantity
-
-          }))
-
-      };
-
-
-      const response =
-        await fetch(
-          API_URL,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "text/plain;charset=utf-8"
-            },
-
-            body:
-              JSON.stringify(payload)
-          }
+        alert(
+          "Keranjang masih kosong."
         );
 
+        return;
 
-      const result =
-        await response.json();
+      }
 
+      closeCart();
 
-      if (!result.success) {
+      if (checkoutModal) {
 
-        throw new Error(
-          result.message ||
-          "Pesanan gagal dibuat."
+        checkoutModal.classList.add(
+          "active"
         );
 
       }
 
+    }
+  );
 
-      alert(
-        "✅ PESANAN BERHASIL!\n\n" +
-        "Order ID:\n" +
-        result.order_id +
-        "\n\n" +
-        "Total:\n" +
-        formatRupiah(
-          result.total
-        )
-      );
+}
 
 
-      // Kosongkan cart
-      cart = [];
+if (closeCheckoutButton) {
 
-      saveCart();
+  closeCheckoutButton.addEventListener(
+    "click",
+    function() {
 
-      renderCart();
+      if (checkoutModal) {
 
+        checkoutModal.classList.remove(
+          "active"
+        );
 
-      // Reset form
-      checkoutForm.reset();
-
-
-      // Tutup checkout
-      checkoutModal.classList.remove(
-        "active"
-      );
-
-
-      // Ambil stok terbaru
-      await loadProducts();
+      }
 
     }
+  );
 
-    catch (error) {
-
-      console.error(
-        "CREATE ORDER ERROR:",
-        error
-      );
+}
 
 
-      alert(
-        "❌ Pesanan belum berhasil.\n\n" +
-        error.message
-      );
+// ======================================================
+// 21. CHECKOUT → GOOGLE SHEETS
+// ======================================================
+
+if (checkoutForm) {
+
+  checkoutForm.addEventListener(
+    "submit",
+    async function(event) {
+
+      event.preventDefault();
+
+      if (cart.length === 0) {
+
+        alert(
+          "Keranjang masih kosong."
+        );
+
+        return;
+
+      }
+
+      const submitButton =
+        checkoutForm.querySelector(
+          ".submit-order-button"
+        );
+
+      const originalText =
+        submitButton
+          ? submitButton.textContent
+          : "";
+
+      if (submitButton) {
+
+        submitButton.disabled = true;
+
+        submitButton.textContent =
+          "Memproses pesanan...";
+
+      }
+
+      try {
+
+        const payload = {
+
+          action:
+            "createOrder",
+
+          customer_name:
+            document
+              .getElementById(
+                "customerName"
+              )
+              .value
+              .trim(),
+
+          whatsapp:
+            document
+              .getElementById(
+                "customerWhatsapp"
+              )
+              .value
+              .trim(),
+
+          address:
+            document
+              .getElementById(
+                "customerAddress"
+              )
+              .value
+              .trim(),
+
+          payment_method:
+            document
+              .getElementById(
+                "paymentMethod"
+              )
+              .value,
+
+          notes:
+            document
+              .getElementById(
+                "customerNotes"
+              )
+              .value
+              .trim(),
+
+          items:
+            cart.map(item => ({
+
+              product_id:
+                item.product_id,
+
+              quantity:
+                item.quantity
+
+            }))
+
+        };
+
+
+        const response =
+          await fetch(
+            API_URL,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "text/plain;charset=utf-8"
+              },
+
+              body:
+                JSON.stringify(payload)
+            }
+          );
+
+
+        const result =
+          await response.json();
+
+
+        if (!result.success) {
+
+          throw new Error(
+            result.message ||
+            "Pesanan gagal dibuat."
+          );
+
+        }
+
+
+        alert(
+          "✅ PESANAN BERHASIL!\n\n" +
+          "Order ID:\n" +
+          result.order_id +
+          "\n\n" +
+          "Total:\n" +
+          formatRupiah(
+            result.total
+          )
+        );
+
+
+        cart = [];
+
+        saveCart();
+
+        renderCart();
+
+
+        checkoutForm.reset();
+
+
+        if (checkoutModal) {
+
+          checkoutModal.classList.remove(
+            "active"
+          );
+
+        }
+
+
+        await loadProducts();
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "CREATE ORDER ERROR:",
+          error
+        );
+
+        alert(
+          "❌ Pesanan belum berhasil.\n\n" +
+          error.message
+        );
+
+      }
+
+      finally {
+
+        if (submitButton) {
+
+          submitButton.disabled =
+            false;
+
+          submitButton.textContent =
+            originalText;
+
+        }
+
+      }
 
     }
+  );
 
-    finally {
+}
 
-      submitButton.disabled =
-        false;
 
-      submitButton.textContent =
-        originalText;
-
-    }
-
-  }
-);
 // ======================================================
-// 20. START WEBSITE
-// ======================================================
-// ======================================================
-// REFERENCES DARI GOOGLE SHEETS
+// 22. REFERENCE LAMA
 // ======================================================
 
 let references = [];
@@ -1142,23 +1335,603 @@ let references = [];
 let currentReferenceIndex = 0;
 
 
-// ======================================================
-// LOAD REFERENCES
-// ======================================================
-
 async function loadReferences() {
 
-  referenceLoading.style.display =
-    "block";
+  if (referenceLoading) {
 
-  referenceLoading.textContent =
-    "Memuat referensi...";
+    referenceLoading.style.display =
+      "block";
+
+    referenceLoading.textContent =
+      "Memuat referensi...";
+
+  }
+
+  if (referenceCarousel) {
+
+    referenceCarousel.style.display =
+      "none";
+
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        `${API_URL}?action=references&t=${Date.now()}`
+      );
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Gagal menghubungi server."
+      );
+
+    }
+
+    const data =
+      await response.json();
+
+    if (!data.success) {
+
+      throw new Error(
+        data.message ||
+        "Referensi gagal dimuat."
+      );
+
+    }
+
+    references =
+      Array.isArray(data.references)
+        ? data.references
+        : [];
+
+    references =
+      references.filter(
+        item =>
+          item.image_url ||
+          item.image_urls
+      );
+
+    currentReferenceIndex = 0;
+
+    renderReference();
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "LOAD REFERENCES ERROR:",
+      error
+    );
+
+    if (referenceLoading) {
+
+      referenceLoading.style.display =
+        "block";
+
+      referenceLoading.textContent =
+        "⚠️ Referensi belum dapat dimuat.";
+
+    }
+
+    if (referenceCarousel) {
+
+      referenceCarousel.style.display =
+        "none";
+
+    }
+
+  }
+
+}
+
+
+// ======================================================
+// 23. RENDER REFERENCE LAMA
+// ======================================================
+
+function renderReference() {
+
+  if (
+    !referenceLoading ||
+    !referenceCarousel
+  ) {
+
+    return;
+
+  }
+
+  if (references.length === 0) {
+
+    referenceLoading.style.display =
+      "block";
+
+    referenceLoading.textContent =
+      "Belum ada referensi.";
+
+    referenceCarousel.style.display =
+      "none";
+
+    if (referenceTitle) {
+      referenceTitle.textContent = "";
+    }
+
+    if (referenceDots) {
+      referenceDots.innerHTML = "";
+    }
+
+    if (referenceCounter) {
+      referenceCounter.textContent = "";
+    }
+
+    return;
+
+  }
+
+
+  referenceLoading.style.display =
+    "none";
 
   referenceCarousel.style.display =
-    "none";
+    "flex";
+
+
+  const reference =
+    references[
+      currentReferenceIndex
+    ];
+
+
+  if (referenceImage) {
+
+    referenceImage.src =
+      reference.image_url ||
+      reference.image_urls ||
+      "";
+
+    referenceImage.alt =
+      reference.title ||
+      "Referensi Scrapbook";
+
+  }
+
+
+  if (referenceTitle) {
+
+    referenceTitle.textContent =
+      reference.title || "";
+
+  }
+
+
+  if (referenceCounter) {
+
+    referenceCounter.textContent =
+      `${currentReferenceIndex + 1} / ${references.length}`;
+
+  }
+
+
+  if (referenceDots) {
+
+    referenceDots.innerHTML =
+      references
+        .map(
+          (item, index) => `
+
+            <button
+              type="button"
+              class="reference-dot ${
+                index === currentReferenceIndex
+                  ? "active"
+                  : ""
+              }"
+              onclick="goToReference(${index})"
+              aria-label="Referensi ${
+                index + 1
+              }"
+            ></button>
+
+          `
+        )
+        .join("");
+
+  }
+
+
+  const showNavigation =
+    references.length > 1;
+
+
+  if (referencePrev) {
+
+    referencePrev.style.display =
+      showNavigation
+        ? "grid"
+        : "none";
+
+  }
+
+
+  if (referenceNext) {
+
+    referenceNext.style.display =
+      showNavigation
+        ? "grid"
+        : "none";
+
+  }
+
+}
+
+
+// ======================================================
+// 24. NEXT REFERENCE
+// ======================================================
+
+function nextReference() {
+
+  if (references.length <= 1) {
+    return;
+  }
+
+  currentReferenceIndex =
+    (
+      currentReferenceIndex + 1
+    ) %
+    references.length;
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// 25. PREVIOUS REFERENCE
+// ======================================================
+
+function previousReference() {
+
+  if (references.length <= 1) {
+    return;
+  }
+
+  currentReferenceIndex =
+    (
+      currentReferenceIndex -
+      1 +
+      references.length
+    ) %
+    references.length;
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// 26. PILIH DOT REFERENCE
+// ======================================================
+
+function goToReference(index) {
+
+  if (
+    index < 0 ||
+    index >= references.length
+  ) {
+
+    return;
+
+  }
+
+  currentReferenceIndex =
+    index;
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// 27. OPEN REFERENCE
+// ======================================================
+
+function openReference() {
+
+  if (!referenceModal) {
+    return;
+  }
+
+  referenceModal.classList.add(
+    "active"
+  );
+
+  renderReference();
+
+}
+
+
+// ======================================================
+// 28. CLOSE REFERENCE
+// ======================================================
+
+function closeReference() {
+
+  if (!referenceModal) {
+    return;
+  }
+
+  referenceModal.classList.remove(
+    "active"
+  );
+
+}
+
+
+// ======================================================
+// 29. BUTTON EVENTS REFERENCE LAMA
+// ======================================================
+
+if (openReferenceButton) {
+
+  openReferenceButton.addEventListener(
+    "click",
+    openReference
+  );
+
+}
+
+
+if (closeReferenceButton) {
+
+  closeReferenceButton.addEventListener(
+    "click",
+    closeReference
+  );
+
+}
+
+
+if (referencePrev) {
+
+  referencePrev.addEventListener(
+    "click",
+    previousReference
+  );
+
+}
+
+
+if (referenceNext) {
+
+  referenceNext.addEventListener(
+    "click",
+    nextReference
+  );
+
+}
+
+
+if (referenceModal) {
+
+  referenceModal.addEventListener(
+    "click",
+    function(event) {
+
+      if (
+        event.target ===
+        referenceModal
+      ) {
+
+        closeReference();
+
+      }
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// 30. SWIPE REFERENCE LAMA
+// ======================================================
+
+let referenceTouchStartX = 0;
+
+
+if (referenceImage) {
+
+  referenceImage.addEventListener(
+    "touchstart",
+    function(event) {
+
+      referenceTouchStartX =
+        event.touches[0].clientX;
+
+    },
+    {
+      passive: true
+    }
+  );
+
+
+  referenceImage.addEventListener(
+    "touchend",
+    function(event) {
+
+      const touchEndX =
+        event.changedTouches[0].clientX;
+
+      const difference =
+        referenceTouchStartX -
+        touchEndX;
+
+      if (
+        Math.abs(difference) < 50
+      ) {
+
+        return;
+
+      }
+
+      if (difference > 0) {
+
+        nextReference();
+
+      }
+
+      else {
+
+        previousReference();
+
+      }
+
+    },
+    {
+      passive: true
+    }
+  );
+
+}
+
+
+// ======================================================
+// 31. KEYBOARD REFERENCE LAMA
+// ======================================================
+
+document.addEventListener(
+  "keydown",
+  function(event) {
+
+    if (
+      !referenceModal ||
+      !referenceModal
+        .classList
+        .contains("active")
+    ) {
+
+      return;
+
+    }
+
+    if (
+      event.key ===
+      "ArrowRight"
+    ) {
+
+      nextReference();
+
+    }
+
+    if (
+      event.key ===
+      "ArrowLeft"
+    ) {
+
+      previousReference();
+
+    }
+
+    if (
+      event.key ===
+      "Escape"
+    ) {
+
+      closeReference();
+
+    }
+
+  }
+);
+
+
+// ======================================================
+// 32. REFERENCES INSTAGRAM FEED
+// ======================================================
+
+const referencesState = {
+
+  all: [],
+
+  currentViewId: null,
+
+  currentImageIndex: 0,
+
+  touchStartX: 0,
+
+  touchEndX: 0,
+
+  isModalOpen: false
+
+};
+
+
+// ======================================================
+// 33. LOAD REFERENCES INSTAGRAM FEED
+// ======================================================
+
+async function loadReferencesInstaFeed() {
+
+  const section =
+    document.getElementById(
+      "references-section"
+    );
+
+  const grid =
+    document.getElementById(
+      "references-grid"
+    );
+
+  const loading =
+    document.getElementById(
+      "references-loading"
+    );
+
+  const empty =
+    document.getElementById(
+      "references-empty"
+    );
+
+
+  if (!section || !grid) {
+
+    console.error(
+      "References feed HTML component tidak ditemukan"
+    );
+
+    return;
+
+  }
 
 
   try {
+
+    if (loading) {
+
+      loading.style.display =
+        "block";
+
+    }
+
+    if (empty) {
+
+      empty.style.display =
+        "none";
+
+    }
+
+    grid.innerHTML = "";
+
+
+    // ==================================================
+    // PENTING:
+    // Sebelumnya menggunakan API_BASE_URL.
+    // Sekarang menggunakan API_URL yang memang
+    // sudah didefinisikan di bagian atas.
+    // ==================================================
 
     const response =
       await fetch(
@@ -1179,52 +1952,100 @@ async function loadReferences() {
       await response.json();
 
 
-    if (!data.success) {
+    if (
+      !data.success ||
+      !Array.isArray(
+        data.references
+      )
+    ) {
 
       throw new Error(
-        data.message ||
-        "Referensi gagal dimuat."
+        "Failed to load references"
       );
 
     }
 
 
-    references =
-      Array.isArray(data.references)
-        ? data.references
-        : [];
+    referencesState.all =
+      data.references;
 
 
-    references =
-      references.filter(
-        item =>
-          item.image_url
-      );
+    if (
+      referencesState.all.length === 0
+    ) {
+
+      if (loading) {
+
+        loading.style.display =
+          "none";
+
+      }
+
+      if (empty) {
+
+        empty.style.display =
+          "block";
+
+      }
+
+      section.style.display =
+        "block";
+
+      return;
+
+    }
 
 
-    currentReferenceIndex = 0;
+    renderReferencesGrid(
+      referencesState.all,
+      grid
+    );
 
 
-    renderReference();
+    section.style.display =
+      "block";
+
+
+    if (loading) {
+
+      loading.style.display =
+        "none";
+
+    }
+
+    if (empty) {
+
+      empty.style.display =
+        "none";
+
+    }
 
   }
 
   catch (error) {
 
     console.error(
-      "LOAD REFERENCES ERROR:",
+      "Error loading references:",
       error
     );
 
 
-    referenceLoading.style.display =
+    if (loading) {
+
+      loading.style.display =
+        "none";
+
+    }
+
+    if (empty) {
+
+      empty.style.display =
+        "block";
+
+    }
+
+    section.style.display =
       "block";
-
-    referenceLoading.textContent =
-      "⚠️ Referensi belum dapat dimuat.";
-
-    referenceCarousel.style.display =
-      "none";
 
   }
 
@@ -1232,157 +2053,259 @@ async function loadReferences() {
 
 
 // ======================================================
-// RENDER REFERENCE
+// 34. RENDER REFERENCES GRID
 // ======================================================
 
-function renderReference() {
+function renderReferencesGrid(
+  referencesData,
+  container
+) {
 
-  if (references.length === 0) {
+  container.innerHTML =
+    referencesData
+      .map(ref => {
 
-    referenceLoading.style.display =
-      "block";
+        const imageUrls =
+          parseImageUrls(
+            ref.image_urls ||
+            ref.image_url
+          );
 
-    referenceLoading.textContent =
-      "Belum ada referensi.";
+        const hasMultiple =
+          imageUrls.length > 1;
 
-    referenceCarousel.style.display =
-      "none";
-
-    referenceTitle.textContent = "";
-
-    referenceDots.innerHTML = "";
-
-    referenceCounter.textContent = "";
-
-    return;
-
-  }
-
-
-  referenceLoading.style.display =
-    "none";
-
-  referenceCarousel.style.display =
-    "flex";
+        const hasDescription =
+          ref.description &&
+          String(
+            ref.description
+          ).trim();
 
 
-  const reference =
-    references[
-      currentReferenceIndex
-    ];
+        if (imageUrls.length === 0) {
+          return "";
+        }
 
 
-  referenceImage.src =
-    reference.image_url;
+        return `
+
+          <div
+            class="
+              reference-card
+              ${
+                hasMultiple
+                  ? "has-multiple"
+                  : ""
+              }
+            "
+
+            onclick="
+              openReferencesModal(
+                '${escapeAttribute(
+                  ref.reference_id
+                )}'
+              )
+            "
+
+            tabindex="0"
+
+            role="button"
+
+            aria-label="${escapeAttribute(
+              ref.title || "Referensi"
+            )}"
+          >
+
+            <div
+              class="
+                reference-card-image-container
+              "
+            >
+
+              <img
+                class="
+                  reference-card-image
+                "
+
+                src="${escapeAttribute(
+                  imageUrls[0]
+                )}"
+
+                alt="${escapeAttribute(
+                  ref.title ||
+                  "Referensi Scrapbook"
+                )}"
+
+                loading="lazy"
+
+                onload="
+                  this.parentElement.style.background='transparent'
+                "
+              />
+
+            </div>
 
 
-  referenceImage.alt =
-    reference.title ||
-    "Referensi Scrapbook";
+            ${
+              hasMultiple
 
+                ? `
+                  <div
+                    class="
+                      reference-card-multi-badge
+                    "
+                  >
+                    📸
+                    ${imageUrls.length}
+                    images
+                  </div>
+                `
 
-  referenceTitle.textContent =
-    reference.title || "";
-
-
-  referenceCounter.textContent =
-    `${currentReferenceIndex + 1} / ${references.length}`;
-
-
-  referenceDots.innerHTML =
-    references
-      .map(
-        (item, index) => `
-          <button
-            type="button"
-            class="reference-dot ${
-              index === currentReferenceIndex
-                ? "active"
                 : ""
-            }"
-            onclick="goToReference(${index})"
-            aria-label="Referensi ${index + 1}"
-          ></button>
-        `
-      )
+            }
+
+
+            <div
+              class="
+                reference-card-overlay
+              "
+            >
+
+              <h3
+                class="
+                  reference-card-title
+                "
+              >
+                ${escapeHtml(
+                  ref.title || ""
+                )}
+              </h3>
+
+
+              ${
+                hasDescription
+
+                  ? `
+                    <p
+                      class="
+                        reference-card-description
+                      "
+                    >
+                      ${escapeHtml(
+                        ref.description
+                      )}
+                    </p>
+                  `
+
+                  : ""
+              }
+
+            </div>
+
+          </div>
+
+        `;
+
+      })
       .join("");
 
 
-  const showNavigation =
-    references.length > 1;
+  container
+    .querySelectorAll(
+      ".reference-card"
+    )
+    .forEach(card => {
 
+      card.addEventListener(
+        "keydown",
+        event => {
 
-  referencePrev.style.display =
-    showNavigation
-      ? "grid"
-      : "none";
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
 
+            event.preventDefault();
 
-  referenceNext.style.display =
-    showNavigation
-      ? "grid"
-      : "none";
+            card.click();
+
+          }
+
+        }
+      );
+
+    });
 
 }
 
 
 // ======================================================
-// NEXT REFERENCE
+// 35. PARSE IMAGE URL
 // ======================================================
 
-function nextReference() {
+function parseImageUrls(
+  urlString
+) {
 
-  if (references.length <= 1) {
+  if (!urlString) {
+    return [];
+  }
+
+  return String(urlString)
+
+    .split(",")
+
+    .map(
+      url =>
+        url.trim()
+    )
+
+    .filter(
+      url =>
+        url.length > 0
+    );
+
+}
+
+
+// ======================================================
+// 36. OPEN REFERENCES MODAL
+// ======================================================
+
+function openReferencesModal(
+  referenceId
+) {
+
+  const reference =
+    referencesState.all.find(
+      item =>
+        String(
+          item.reference_id
+        ) ===
+        String(referenceId)
+    );
+
+
+  if (!reference) {
     return;
   }
 
 
-  currentReferenceIndex =
-    (
-      currentReferenceIndex + 1
-    ) %
-    references.length;
+  referencesState.currentViewId =
+    referenceId;
+
+  referencesState.currentImageIndex =
+    0;
 
 
-  renderReference();
+  const imageUrls =
+    parseImageUrls(
+      reference.image_urls ||
+      reference.image_url
+    );
 
-}
-
-
-// ======================================================
-// PREVIOUS REFERENCE
-// ======================================================
-
-function previousReference() {
-
-  if (references.length <= 1) {
-    return;
-  }
-
-
-  currentReferenceIndex =
-    (
-      currentReferenceIndex -
-      1 +
-      references.length
-    ) %
-    references.length;
-
-
-  renderReference();
-
-}
-
-
-// ======================================================
-// PILIH DOT
-// ======================================================
-
-function goToReference(index) {
 
   if (
-    index < 0 ||
-    index >= references.length
+    imageUrls.length === 0
   ) {
 
     return;
@@ -1390,476 +2313,794 @@ function goToReference(index) {
   }
 
 
-  currentReferenceIndex =
-    index;
+  const hasMultiple =
+    imageUrls.length > 1;
 
 
-  renderReference();
+  const modalTitle =
+    document.getElementById(
+      "references-modal-title"
+    );
 
-}
+  const modalDescription =
+    document.getElementById(
+      "references-modal-description"
+    );
 
+  const modalImage =
+    document.getElementById(
+      "references-modal-image"
+    );
 
-// ======================================================
-// OPEN REFERENCE
-// ======================================================
+  const counter =
+    document.getElementById(
+      "references-image-counter"
+    );
 
-function openReference() {
+  const carouselControls =
+    document.getElementById(
+      "references-carousel-controls"
+    );
 
-  referenceModal.classList.add(
-    "active"
-  );
-
-
-  renderReference();
-
-}
-
-
-// ======================================================
-// CLOSE REFERENCE
-// ======================================================
-
-function closeReference() {
-
-  referenceModal.classList.remove(
-    "active"
-  );
-
-}
+  const modal =
+    document.getElementById(
+      "references-modal"
+    );
 
 
-// ======================================================
-// BUTTON EVENTS
-// ======================================================
+  if (modalTitle) {
 
-openReferenceButton.addEventListener(
-  "click",
-  openReference
-);
-
-
-closeReferenceButton.addEventListener(
-  "click",
-  closeReference
-);
-
-
-referencePrev.addEventListener(
-  "click",
-  previousReference
-);
-
-
-referenceNext.addEventListener(
-  "click",
-  nextReference
-);
-
-
-// Klik area gelap → tutup
-referenceModal.addEventListener(
-  "click",
-  function(event) {
-
-    if (
-      event.target ===
-      referenceModal
-    ) {
-
-      closeReference();
-
-    }
+    modalTitle.textContent =
+      reference.title || "";
 
   }
-);
 
 
-// ======================================================
-// SWIPE DI HP
-// ======================================================
+  if (modalDescription) {
 
-let referenceTouchStartX = 0;
+    modalDescription.textContent =
+      reference.description ||
+      "Referensi inspirasi desain scrapbook";
 
-
-referenceImage.addEventListener(
-  "touchstart",
-  function(event) {
-
-    referenceTouchStartX =
-      event.touches[0].clientX;
-
-  },
-  {
-    passive: true
   }
-);
 
 
-referenceImage.addEventListener(
-  "touchend",
-  function(event) {
+  if (modalImage) {
 
-    const touchEndX =
-      event.changedTouches[0].clientX;
+    modalImage.src =
+      imageUrls[0];
 
-
-    const difference =
-      referenceTouchStartX -
-      touchEndX;
+  }
 
 
-    if (
-      Math.abs(difference) < 50
-    ) {
+  if (counter) {
 
-      return;
+    counter.textContent =
+      `1/${imageUrls.length}`;
 
-    }
+  }
 
 
-    if (difference > 0) {
+  if (carouselControls) {
 
-      nextReference();
+    if (hasMultiple) {
+
+      carouselControls.style.display =
+        "flex";
+
+      renderCarouselDots(
+        imageUrls.length
+      );
 
     }
 
     else {
 
-      previousReference();
-
-    }
-
-  },
-  {
-    passive: true
-  }
-);
-
-
-// ======================================================
-// KEYBOARD DESKTOP
-// ======================================================
-
-document.addEventListener(
-  "keydown",
-  function(event) {
-
-    if (
-      !referenceModal
-        .classList
-        .contains("active")
-    ) {
-
-      return;
-
-    }
-
-
-    if (event.key === "ArrowRight") {
-
-      nextReference();
-
-    }
-
-
-    if (event.key === "ArrowLeft") {
-
-      previousReference();
-
-    }
-
-
-    if (event.key === "Escape") {
-
-      closeReference();
+      carouselControls.style.display =
+        "none";
 
     }
 
   }
-);
-loadProducts();
-loadReferences();
 
-// ===== REFERENCES INSTAGRAM FEED =====
-const referencesState = {
-  all: [],
-  currentViewId: null,
-  currentImageIndex: 0,
-  touchStartX: 0,
-  touchEndX: 0,
-  isModalOpen: false
-};
 
-async function loadReferencesInstaFeed() {
-  const section = document.getElementById('references-section');
-  const grid = document.getElementById('references-grid');
-  const loading = document.getElementById('references-loading');
-  const empty = document.getElementById('references-empty');
-
-  if (!section || !grid) {
-    console.error('References feed HTML component tidak ditemukan');
+  if (!modal) {
     return;
   }
 
-  try {
-    loading.style.display = 'block';
-    grid.innerHTML = '';
 
-    const response = await fetch(`${API_BASE_URL}?action=references`);
-    const data = await response.json();
+  modal.style.display =
+    "flex";
 
-    if (!data.success || !Array.isArray(data.references)) {
-      throw new Error('Failed to load references');
-    }
+  referencesState.isModalOpen =
+    true;
 
-    referencesState.all = data.references;
-
-    if (referencesState.all.length === 0) {
-      loading.style.display = 'none';
-      empty.style.display = 'block';
-      section.style.display = 'block';
-      return;
-    }
-
-    renderReferencesGrid(referencesState.all, grid);
-    section.style.display = 'block';
-    loading.style.display = 'none';
-    empty.style.display = 'none';
-
-  } catch (error) {
-    console.error('Error loading references:', error);
-    loading.style.display = 'none';
-    empty.style.display = 'block';
-    section.style.display = 'block';
-  }
-}
-
-function renderReferencesGrid(references, container) {
-  container.innerHTML = references.map(ref => {
-    const imageUrls = parseImageUrls(ref.image_urls || ref.image_url);
-    const hasMultiple = imageUrls.length > 1;
-    const hasDescription = ref.description && ref.description.trim();
-
-    return `
-      <div class="reference-card ${hasMultiple ? 'has-multiple' : ''}" 
-           onclick="openReferencesModal('${ref.reference_id}')"
-           tabindex="0"
-           role="button"
-           aria-label="${ref.title}">
-        <div class="reference-card-image-container">
-          <img 
-            class="reference-card-image"
-            src="${imageUrls[0]}" 
-            alt="${ref.title}"
-            loading="lazy"
-            onload="this.parentElement.style.background='transparent'"
-          />
-        </div>
-        ${hasMultiple ? `<div class="reference-card-multi-badge">📸 ${imageUrls.length} images</div>` : ''}
-        <div class="reference-card-overlay">
-          <h3 class="reference-card-title">${escapeHtml(ref.title)}</h3>
-          ${hasDescription ? `<p class="reference-card-description">${escapeHtml(ref.description)}</p>` : ''}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  container.querySelectorAll('.reference-card').forEach(card => {
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        card.click();
-      }
-    });
-  });
-}
-
-function parseImageUrls(urlString) {
-  if (!urlString) return [];
-  return String(urlString)
-    .split(',')
-    .map(url => url.trim())
-    .filter(url => url.length > 0);
-}
-
-function openReferencesModal(referenceId) {
-  const reference = referencesState.all.find(r => r.reference_id === referenceId);
-  if (!reference) return;
-
-  referencesState.currentViewId = referenceId;
-  referencesState.currentImageIndex = 0;
-
-  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
-  const hasMultiple = imageUrls.length > 1;
-
-  document.getElementById('references-modal-title').textContent = reference.title;
-  document.getElementById('references-modal-description').textContent = 
-    reference.description || 'Referensi inspirasi desain scrapbook';
-  
-  document.getElementById('references-modal-image').src = imageUrls[0];
-  document.getElementById('references-image-counter').textContent = `1/${imageUrls.length}`;
-
-  const carouselControls = document.getElementById('references-carousel-controls');
-  if (hasMultiple) {
-    carouselControls.style.display = 'flex';
-    renderCarouselDots(imageUrls.length);
-  } else {
-    carouselControls.style.display = 'none';
-  }
-
-  const modal = document.getElementById('references-modal');
-  modal.style.display = 'flex';
-  referencesState.isModalOpen = true;
 
   setupModalInteractions();
-  document.body.style.overflow = 'hidden';
+
+
+  document.body.style.overflow =
+    "hidden";
+
 }
+
+
+// ======================================================
+// 37. CLOSE REFERENCES MODAL
+// ======================================================
 
 function closeReferencesModal() {
-  const modal = document.getElementById('references-modal');
-  modal.style.display = 'none';
-  referencesState.isModalOpen = false;
-  referencesState.currentViewId = null;
-  document.body.style.overflow = '';
+
+  const modal =
+    document.getElementById(
+      "references-modal"
+    );
+
+
+  if (!modal) {
+    return;
+  }
+
+
+  modal.style.display =
+    "none";
+
+
+  referencesState.isModalOpen =
+    false;
+
+
+  referencesState.currentViewId =
+    null;
+
+
+  document.body.style.overflow =
+    "";
+
 }
+
+
+// ======================================================
+// 38. NEXT IMAGE
+// ======================================================
 
 function nextReferenceImage() {
-  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
-  if (!reference) return;
 
-  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
-  const maxIndex = imageUrls.length - 1;
+  const reference =
+    referencesState.all.find(
+      item =>
+        String(
+          item.reference_id
+        ) ===
+        String(
+          referencesState.currentViewId
+        )
+    );
 
-  if (referencesState.currentImageIndex < maxIndex) {
-    referencesState.currentImageIndex++;
-    updateModalImage(reference, imageUrls);
+
+  if (!reference) {
+    return;
   }
+
+
+  const imageUrls =
+    parseImageUrls(
+      reference.image_urls ||
+      reference.image_url
+    );
+
+
+  const maxIndex =
+    imageUrls.length - 1;
+
+
+  if (
+    referencesState.currentImageIndex <
+    maxIndex
+  ) {
+
+    referencesState.currentImageIndex++;
+
+    updateModalImage(
+      reference,
+      imageUrls
+    );
+
+  }
+
 }
+
+
+// ======================================================
+// 39. PREVIOUS IMAGE
+// ======================================================
 
 function prevReferenceImage() {
-  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
-  if (!reference) return;
 
-  if (referencesState.currentImageIndex > 0) {
+  const reference =
+    referencesState.all.find(
+      item =>
+        String(
+          item.reference_id
+        ) ===
+        String(
+          referencesState.currentViewId
+        )
+    );
+
+
+  if (!reference) {
+    return;
+  }
+
+
+  if (
+    referencesState.currentImageIndex >
+    0
+  ) {
+
     referencesState.currentImageIndex--;
-    const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
-    updateModalImage(reference, imageUrls);
+
+    const imageUrls =
+      parseImageUrls(
+        reference.image_urls ||
+        reference.image_url
+      );
+
+    updateModalImage(
+      reference,
+      imageUrls
+    );
+
   }
+
 }
 
-function goToReferenceImage(index) {
-  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
-  if (!reference) return;
 
-  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
-  if (index >= 0 && index < imageUrls.length) {
-    referencesState.currentImageIndex = index;
-    updateModalImage(reference, imageUrls);
+// ======================================================
+// 40. GO TO IMAGE
+// ======================================================
+
+function goToReferenceImage(
+  index
+) {
+
+  const reference =
+    referencesState.all.find(
+      item =>
+        String(
+          item.reference_id
+        ) ===
+        String(
+          referencesState.currentViewId
+        )
+    );
+
+
+  if (!reference) {
+    return;
   }
+
+
+  const imageUrls =
+    parseImageUrls(
+      reference.image_urls ||
+      reference.image_url
+    );
+
+
+  if (
+    index >= 0 &&
+    index < imageUrls.length
+  ) {
+
+    referencesState.currentImageIndex =
+      index;
+
+    updateModalImage(
+      reference,
+      imageUrls
+    );
+
+  }
+
 }
 
-function updateModalImage(reference, imageUrls) {
-  const idx = referencesState.currentImageIndex;
-  document.getElementById('references-modal-image').src = imageUrls[idx];
-  document.getElementById('references-image-counter').textContent = `${idx + 1}/${imageUrls.length}`;
-  document.querySelectorAll('.carousel-dot').forEach((dot, i) => {
-    dot.classList.toggle('active', i === idx);
-  });
-}
 
-function renderCarouselDots(count) {
-  const container = document.getElementById('references-carousel-dots');
-  container.innerHTML = Array.from({ length: count }, (_, i) => `
-    <div class="carousel-dot ${i === 0 ? 'active' : ''}" 
-         onclick="goToReferenceImage(${i})"
-         role="button"
-         tabindex="0"
-         aria-label="Go to image ${i + 1}"></div>
-  `).join('');
+// ======================================================
+// 41. UPDATE MODAL IMAGE
+// ======================================================
 
-  container.querySelectorAll('.carousel-dot').forEach(dot => {
-    dot.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        dot.click();
+function updateModalImage(
+  reference,
+  imageUrls
+) {
+
+  const idx =
+    referencesState.currentImageIndex;
+
+
+  const modalImage =
+    document.getElementById(
+      "references-modal-image"
+    );
+
+  const counter =
+    document.getElementById(
+      "references-image-counter"
+    );
+
+
+  if (modalImage) {
+
+    modalImage.src =
+      imageUrls[idx];
+
+  }
+
+
+  if (counter) {
+
+    counter.textContent =
+      `${idx + 1}/${imageUrls.length}`;
+
+  }
+
+
+  document
+    .querySelectorAll(
+      ".carousel-dot"
+    )
+    .forEach(
+      (dot, index) => {
+
+        dot.classList.toggle(
+          "active",
+          index === idx
+        );
+
       }
-    });
-  });
+    );
+
 }
+
+
+// ======================================================
+// 42. RENDER CAROUSEL DOTS
+// ======================================================
+
+function renderCarouselDots(
+  count
+) {
+
+  const container =
+    document.getElementById(
+      "references-carousel-dots"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML =
+    Array.from(
+      {
+        length: count
+      },
+      (_, index) => `
+
+        <div
+          class="
+            carousel-dot
+            ${
+              index === 0
+                ? "active"
+                : ""
+            }
+          "
+
+          onclick="
+            goToReferenceImage(
+              ${index}
+            )
+          "
+
+          role="button"
+
+          tabindex="0"
+
+          aria-label="
+            Go to image
+            ${index + 1}
+          "
+        ></div>
+
+      `
+    )
+    .join("");
+
+
+  container
+    .querySelectorAll(
+      ".carousel-dot"
+    )
+    .forEach(dot => {
+
+      dot.addEventListener(
+        "keydown",
+        event => {
+
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+
+            event.preventDefault();
+
+            dot.click();
+
+          }
+
+        }
+      );
+
+    });
+
+}
+
+
+// ======================================================
+// 43. MODAL INTERACTIONS
+// ======================================================
 
 function setupModalInteractions() {
-  const modal = document.getElementById('references-modal');
-  const newModal = modal.cloneNode(true);
-  modal.parentElement.replaceChild(newModal, modal);
 
-  const overlay = newModal.querySelector('.references-modal-overlay');
+  const modal =
+    document.getElementById(
+      "references-modal"
+    );
+
+
+  if (!modal) {
+    return;
+  }
+
+
+  // Hapus listener lama dengan clone
+  // supaya tidak terjadi event listener ganda.
+
+  const newModal =
+    modal.cloneNode(true);
+
+
+  modal.parentElement.replaceChild(
+    newModal,
+    modal
+  );
+
+
+  const overlay =
+    newModal.querySelector(
+      ".references-modal-overlay"
+    );
+
+
   if (overlay) {
-    overlay.addEventListener('click', closeReferencesModal);
+
+    overlay.addEventListener(
+      "click",
+      closeReferencesModal
+    );
+
   }
 
-  document.addEventListener('keydown', handleModalKeyboard, { once: true });
 
-  const carouselWrapper = newModal.querySelector('.references-carousel-wrapper');
+  document.addEventListener(
+    "keydown",
+    handleModalKeyboard
+  );
+
+
+  const carouselWrapper =
+    newModal.querySelector(
+      ".references-carousel-wrapper"
+    );
+
+
   if (carouselWrapper) {
-    carouselWrapper.addEventListener('touchstart', handleTouchStart, false);
-    carouselWrapper.addEventListener('touchend', handleTouchEnd, false);
+
+    carouselWrapper.addEventListener(
+      "touchstart",
+      handleTouchStart,
+      {
+        passive: true
+      }
+    );
+
+
+    carouselWrapper.addEventListener(
+      "touchend",
+      handleTouchEnd,
+      {
+        passive: true
+      }
+    );
+
   }
+
 }
 
-function handleModalKeyboard(e) {
-  if (!referencesState.isModalOpen) return;
 
-  switch (e.key) {
-    case 'Escape':
+// ======================================================
+// 44. KEYBOARD MODAL
+// ======================================================
+
+function handleModalKeyboard(
+  event
+) {
+
+  if (
+    !referencesState.isModalOpen
+  ) {
+
+    return;
+
+  }
+
+
+  switch (event.key) {
+
+    case "Escape":
+
       closeReferencesModal();
+
       break;
-    case 'ArrowRight':
+
+
+    case "ArrowRight":
+
       nextReferenceImage();
+
       break;
-    case 'ArrowLeft':
+
+
+    case "ArrowLeft":
+
       prevReferenceImage();
+
       break;
+
   }
 
-  if (referencesState.isModalOpen) {
-    document.addEventListener('keydown', handleModalKeyboard);
+}
+
+
+// ======================================================
+// 45. TOUCH START
+// ======================================================
+
+function handleTouchStart(
+  event
+) {
+
+  referencesState.touchStartX =
+    event.changedTouches[0]
+      .screenX;
+
+}
+
+
+// ======================================================
+// 46. TOUCH END
+// ======================================================
+
+function handleTouchEnd(
+  event
+) {
+
+  referencesState.touchEndX =
+    event.changedTouches[0]
+      .screenX;
+
+
+  if (
+    !referencesState.isModalOpen
+  ) {
+
+    return;
+
   }
-}
 
-function handleTouchStart(e) {
-  referencesState.touchStartX = e.changedTouches[0].screenX;
-}
 
-function handleTouchEnd(e) {
-  referencesState.touchEndX = e.changedTouches[0].screenX;
+  const reference =
+    referencesState.all.find(
+      item =>
+        String(
+          item.reference_id
+        ) ===
+        String(
+          referencesState.currentViewId
+        )
+    );
 
-  if (!referencesState.isModalOpen) return;
 
-  const reference = referencesState.all.find(r => r.reference_id === referencesState.currentViewId);
-  if (!reference) return;
+  if (!reference) {
+    return;
+  }
 
-  const imageUrls = parseImageUrls(reference.image_urls || reference.image_url);
-  const minSwipeDistance = 50;
-  const difference = referencesState.touchStartX - referencesState.touchEndX;
 
-  if (Math.abs(difference) > minSwipeDistance) {
+  const minSwipeDistance =
+    50;
+
+
+  const difference =
+    referencesState.touchStartX -
+    referencesState.touchEndX;
+
+
+  if (
+    Math.abs(difference) >
+    minSwipeDistance
+  ) {
+
     if (difference > 0) {
+
       nextReferenceImage();
-    } else {
-      prevReferenceImage();
+
     }
+
+    else {
+
+      prevReferenceImage();
+
+    }
+
   }
+
 }
+
+
+// ======================================================
+// 47. ESCAPE HTML
+// ======================================================
 
 function escapeHtml(text) {
-  if (!text) return '';
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-  return String(text).replace(/[&<>"']/g, m => map[m]);
+
+  if (!text) {
+    return "";
+  }
+
+  const map = {
+
+    "&": "&amp;",
+
+    "<": "&lt;",
+
+    ">": "&gt;",
+
+    '"': "&quot;",
+
+    "'": "&#039;"
+
+  };
+
+  return String(text)
+    .replace(
+      /[&<>"']/g,
+      character =>
+        map[character]
+    );
+
 }
 
-document.addEventListener('click', (e) => {
-  const modal = document.getElementById('references-modal');
-  if (e.target === modal) {
-    closeReferencesModal();
+
+// ======================================================
+// 48. ESCAPE ATTRIBUTE
+// ======================================================
+
+function escapeAttribute(
+  text
+) {
+
+  if (!text) {
+    return "";
   }
-});
+
+  return String(text)
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    );
+
+}
+
+
+// ======================================================
+// 49. CLOSE NEW REFERENCE MODAL
+// ======================================================
+
+document.addEventListener(
+  "click",
+  function(event) {
+
+    const modal =
+      document.getElementById(
+        "references-modal"
+      );
+
+
+    if (
+      modal &&
+      event.target === modal
+    ) {
+
+      closeReferencesModal();
+
+    }
+
+  }
+);
+
+
+// ======================================================
+// 50. START WEBSITE
+// ======================================================
+//
+// HTML kamu memanggil app.js di bagian paling bawah
+// setelah seluruh elemen HTML dibuat.
+// Jadi tidak perlu memindahkan seluruh kode ke
+// DOMContentLoaded.
+//
+// Kita tetap menggunakan fungsi startup terpisah
+// agar urutannya jelas.
+// ======================================================
+
+async function startWebsite() {
+
+  console.log(
+    "🚀 Nikiara.studio starting..."
+  );
+
+
+  // Produk
+  await loadProducts();
+
+
+  // Reference lama
+  await loadReferences();
+
+
+  // Reference Instagram Feed BARU
+  await loadReferencesInstaFeed();
+
+
+  console.log(
+    "✅ Nikiara.studio loaded."
+  );
+
+}
+
+
+// ======================================================
+// START
+// ======================================================
+
+startWebsite();
