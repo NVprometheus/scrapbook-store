@@ -357,12 +357,60 @@
      REFERENCE CAROUSEL
 ========================= -->
 
-<div
-  class="modal"
-  id="referenceModal"
->
+<!-- ===== REFERENCES INSTAGRAM FEED SECTION ===== -->
+<section id="references-section" class="references-insta-feed" style="display: none;">
+  <div class="references-header">
+    <h2>✨ Inspirasi Scrapbook</h2>
+    <p>Koleksi referensi desain yang kami sukai</p>
+  </div>
 
-  <div
+  <!-- Instagram Grid -->
+  <div id="references-grid" class="references-grid">
+    <!-- Item akan di-render oleh JavaScript -->
+  </div>
+
+  <!-- Loading State -->
+  <div id="references-loading" class="references-loading" style="display: none;">
+    <p>Memuat inspirasi...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div id="references-empty" class="references-empty" style="display: none;">
+    <p>Belum ada referensi yang tersedia.</p>
+  </div>
+</section>
+
+<!-- ===== REFERENCES MODAL — Full Screen Carousel ===== -->
+<div id="references-modal" class="references-modal" style="display: none;">
+  <div class="references-modal-overlay"></div>
+
+  <div class="references-modal-content">
+    <!-- Close Button -->
+    <button class="references-modal-close" onclick="closeReferencesModal()">&times;</button>
+
+    <!-- Carousel Container (jika multi-image) -->
+    <div class="references-carousel-wrapper">
+      <!-- Image -->
+      <img id="references-modal-image" class="references-modal-image" src="" alt="Reference" />
+
+      <!-- Carousel Controls (muncul jika lebih dari 1 image) -->
+      <div id="references-carousel-controls" class="references-carousel-controls" style="display: none;">
+        <button class="carousel-arrow carousel-prev" onclick="prevReferenceImage()">‹</button>
+        <button class="carousel-arrow carousel-next" onclick="nextReferenceImage()">›</button>
+        <div class="carousel-dots" id="references-carousel-dots"></div>
+      </div>
+    </div>
+
+    <!-- Modal Info -->
+    <div class="references-modal-info">
+      <h3 id="references-modal-title">Title</h3>
+      <p id="references-modal-description">Description</p>
+      <div class="references-modal-counter">
+        <span id="references-image-counter">1/1</span>
+      </div>
+    </div>
+  </div>
+</div>
     class="modal-card reference-carousel-card"
   >
 
