@@ -1,3106 +1,739 @@
-// ======================================================
-// SCRAPBOOK STORE
-// Frontend Website
-// ======================================================
+// =========================================================
+// NIKIARA.STUDIO - SCRAPBOOK STORE
+// Modular Architecture - Clean, Fast, Maintainable
+// =========================================================
 
-// ======================================================
-// 1. API GOOGLE APPS SCRIPT
-// ======================================================
+// =========================================================
+// CONFIG
+// =========================================================
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec";
+const CONFIG = {
+  API_URL: "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec",
+  PRODUCTS_PER_PAGE: 12,
+  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+};
 
+// =========================================================
+// UTILITIES
+// =========================================================
 
-// ======================================================
-// 2. GLOBAL STATE
-// ======================================================
-
-let products = [];
-let selectedCategory = "all";
-
-let cart =
-  JSON.parse(
-    localStorage.getItem("scrapbookCart")
-  ) || [];
-
-
-// ======================================================
-// 3. ELEMENT HTML
-// ======================================================
-
-const productGrid =
-  document.getElementById("productGrid");
-
-const productCount =
-  document.getElementById("productCount");
-
-const searchInput =
-  document.getElementById("searchInput");
-
-const categoryList =
-  document.getElementById("categoryList");
-
-const cartCount =
-  document.getElementById("cartCount");
-
-const cartTotal =
-  document.getElementById("cartTotal");
-
-const checkoutTotal =
-  document.getElementById("checkoutTotal");
-
-const cartItems =
-  document.getElementById("cartItems");
-
-const cartDrawer =
-  document.getElementById("cartDrawer");
-
-const cartOverlay =
-  document.getElementById("cartOverlay");
-
-const openCartButton =
-  document.getElementById("openCartButton");
-
-const closeCartButton =
-  document.getElementById("closeCartButton");
-
-const checkoutButton =
-  document.getElementById("checkoutButton");
-
-const checkoutModal =
-  document.getElementById("checkoutModal");
-
-const closeCheckoutButton =
-  document.getElementById("closeCheckoutButton");
-
-const checkoutForm =
-  document.getElementById("checkoutForm");
-
-
-// ======================================================
-// 4. REFERENCE LAMA
-// ======================================================
-
-const referenceModal =
-  document.getElementById("referenceModal");
-
-const openReferenceButton =
-  document.getElementById("openReferenceButton");
-
-const closeReferenceButton =
-  document.getElementById("closeReferenceButton");
-
-const referenceImage =
-  document.getElementById("referenceImage");
-
-const referencePrev =
-  document.getElementById("referencePrev");
-
-const referenceNext =
-  document.getElementById("referenceNext");
-
-const referenceDots =
-  document.getElementById("referenceDots");
-
-const referenceCounter =
-  document.getElementById("referenceCounter");
-
-const referenceTitle =
-  document.getElementById("referenceTitle");
-
-const referenceLoading =
-  document.getElementById("referenceLoading");
-
-const referenceCarousel =
-  document.getElementById("referenceCarousel");
-
-
-// ======================================================
-// 5. FORMAT RUPIAH
-// ======================================================
-
-function formatRupiah(number) {
-  return new Intl.NumberFormat(
-    "id-ID",
-    {
+const Utils = {
+  // Format angka jadi Rupiah
+  formatRupiah(num) {
+    return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
-      minimumFractionDigits: 0
-    }
-  ).format(Number(number) || 0);
-}
+      minimumFractionDigits: 0,
+    }).format(num || 0);
+  },
 
+  // Escape HTML untuk security
+  escapeHtml(text) {
+    const map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return String(text || "").replace(/[&<>"']/g, (c) => map[c]);
+  },
 
-// ======================================================
-// 6. ICON KATEGORI
-// ======================================================
+  // API Call dengan cache
+  async apiCall(params) {
+    const cacheKey = `cache_${JSON.stringify(params)}`;
+    const cached = sessionStorage.getItem(cacheKey);
 
-function getCategoryIcon(category) {
-
-  const icons = {
-    Paper: "📜",
-    Sticker: "🌸",
-    Journal: "📖",
-    Decoration: "🎀",
-    Printable: "🖼️"
-  };
-
-  return icons[category] || "✨";
-}
-
-
-// ======================================================
-// 7. AMBIL PRODUCTS DARI GOOGLE SHEETS
-// ======================================================
-
-async function loadProducts() {
-
-  if (productGrid) {
-
-    productGrid.innerHTML = `
-      <div class="loading-message">
-        Memuat koleksi dari toko... ✨
-      </div>
-    `;
-  }
-
-  if (productCount) {
-    productCount.textContent = "Memuat produk...";
-  }
-
-  try {
-
-    const response =
-      await fetch(
-        `${API_URL}?action=products&t=${Date.now()}`
-      );
-
-    if (!response.ok) {
-      throw new Error(
-        "Gagal menghubungi server."
-      );
+    if (cached) {
+      const { data, time } = JSON.parse(cached);
+      if (Date.now() - time < CONFIG.CACHE_DURATION) {
+        return data;
+      }
     }
 
-    const data =
-      await response.json();
+    const query = new URLSearchParams(params).toString();
+    const response = await fetch(`${CONFIG.API_URL}?${query}&t=${Date.now()}`);
 
-    if (!data.success) {
-      throw new Error(
-        data.message ||
-        "Data produk gagal dimuat."
-      );
-    }
+    if (!response.ok) throw new Error("API call failed");
 
-    products =
-      Array.isArray(data.products)
-        ? data.products
-        : [];
+    const data = await response.json();
+    sessionStorage.setItem(cacheKey, JSON.stringify({ data, time: Date.now() }));
 
-    products =
-      products.map(product => ({
+    return data;
+  },
 
-        ...product,
+  // Debounce untuk search
+  debounce(func, delay) {
+    let timeout;
+    return function (...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), delay);
+    };
+  },
 
-        price:
-          Number(product.price) || 0,
+  // Show notification
+  showNotification(message, type = "success") {
+    const toast = document.getElementById("notificationToast");
+    toast.textContent = message;
+    toast.className = `notification-toast show ${type}`;
 
-        stock:
-          Number(product.stock) || 0,
+    setTimeout(() => {
+      toast.classList.remove("show");
+    }, 3000);
+  },
+};
 
-        active:
-          product.active === true ||
-          product.active === "TRUE" ||
-          product.active === "true" ||
-          product.active === 1 ||
-          product.active === "1"
+// =========================================================
+// PRODUCTS MODULE
+// =========================================================
 
+const ProductsModule = {
+  products: [],
+  filteredProducts: [],
+  currentPage: 1,
+  selectedCategory: "all",
+
+  async load() {
+    try {
+      const data = await Utils.apiCall({ action: "products" });
+
+      if (!data.success) throw new Error(data.message || "Failed to load products");
+
+      this.products = (data.products || []).map((p) => ({
+        ...p,
+        price: Number(p.price) || 0,
+        stock: Number(p.stock) || 0,
+        active: ["TRUE", "true", 1, "1", true].includes(p.active),
       }));
 
-    syncCartWithProducts();
-
-    renderCategories();
-
-    renderProducts();
-
-    renderCart();
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "LOAD PRODUCTS ERROR:",
-      error
-    );
-
-    if (productGrid) {
-
-      productGrid.innerHTML = `
+      this.render();
+      this.renderCategories();
+    } catch (error) {
+      console.error("❌ Load products error:", error);
+      document.getElementById("productGrid").innerHTML = `
         <div class="loading-message">
-          ⚠️ Produk belum dapat dimuat.
-          <br><br>
-          Coba refresh halaman.
+          ⚠️ Produk belum dapat dimuat. Coba refresh halaman.
         </div>
       `;
     }
+  },
 
-    if (productCount) {
-      productCount.textContent =
-        "Gagal memuat produk";
-    }
-  }
-}
+  getActiveProducts() {
+    return this.products.filter((p) => p.active);
+  },
 
+  filter(searchTerm = "") {
+    const active = this.getActiveProducts();
 
-// ======================================================
-// 8. CATEGORY DINAMIS
-// ======================================================
+    this.filteredProducts = active.filter((p) => {
+      const matchCategory =
+        this.selectedCategory === "all" || p.category === this.selectedCategory;
 
-function renderCategories() {
+      const searchLower = searchTerm.toLowerCase();
+      const matchSearch =
+        !searchTerm ||
+        p.name?.toLowerCase().includes(searchLower) ||
+        p.description?.toLowerCase().includes(searchLower);
 
-  if (!categoryList) {
-    return;
-  }
-
-  const categories = [
-    ...new Set(
-      products
-        .filter(product => product.active)
-        .map(product => product.category)
-        .filter(Boolean)
-    )
-  ];
-
-  categoryList.innerHTML = `
-
-    <button
-      type="button"
-      class="category-button ${
-        selectedCategory === "all"
-          ? "active"
-          : ""
-      }"
-      data-category="all"
-    >
-      Semua
-    </button>
-
-    ${categories
-      .map(category => `
-
-        <button
-          type="button"
-          class="category-button ${
-            selectedCategory === category
-              ? "active"
-              : ""
-          }"
-          data-category="${category}"
-        >
-          ${escapeHtml(category)}
-        </button>
-
-      `)
-      .join("")}
-
-  `;
-}
-
-
-// ======================================================
-// 9. TAMPILKAN PRODUCTS
-// ======================================================
-
-function renderProducts() {
-
-  if (!productGrid) {
-    return;
-  }
-
-  const keyword =
-    searchInput
-      ? searchInput.value
-          .toLowerCase()
-          .trim()
-      : "";
-
-  const filteredProducts =
-    products.filter(product => {
-
-      if (!product.active) {
-        return false;
-      }
-
-      const name =
-        String(
-          product.product_name || ""
-        ).toLowerCase();
-
-      const description =
-        String(
-          product.description || ""
-        ).toLowerCase();
-
-      const category =
-        String(
-          product.category || ""
-        ).toLowerCase();
-
-      const matchesSearch =
-        name.includes(keyword) ||
-        description.includes(keyword) ||
-        category.includes(keyword);
-
-      const matchesCategory =
-        selectedCategory === "all" ||
-        product.category === selectedCategory;
-
-      return (
-        matchesSearch &&
-        matchesCategory
-      );
+      return matchCategory && matchSearch;
     });
 
-  if (productCount) {
-    productCount.textContent =
-      `${filteredProducts.length} produk`;
-  }
+    this.currentPage = 1;
+    this.render();
+  },
 
-  if (filteredProducts.length === 0) {
+  getPaginatedProducts() {
+    const start = (this.currentPage - 1) * CONFIG.PRODUCTS_PER_PAGE;
+    const end = start + CONFIG.PRODUCTS_PER_PAGE;
+    return this.filteredProducts.slice(start, end);
+  },
 
-    productGrid.innerHTML = `
-      <div class="loading-message">
-        Produk tidak ditemukan 😢
-      </div>
-    `;
+  getTotalPages() {
+    return Math.ceil(this.filteredProducts.length / CONFIG.PRODUCTS_PER_PAGE);
+  },
 
-    return;
-  }
+  render() {
+    const grid = document.getElementById("productGrid");
+    const count = document.getElementById("productCount");
+    const paginatedProducts = this.getPaginatedProducts();
+    const totalPages = this.getTotalPages();
 
-  productGrid.innerHTML =
-    filteredProducts
-      .map(product => {
+    count.textContent = `${this.filteredProducts.length} produk ditemukan`;
 
-        const imageHTML =
-          product.image_url
-
-            ? `
-              <img
-                class="product-image"
-                src="${escapeAttribute(
-                  product.image_url
-                )}"
-                alt="${escapeAttribute(
-                  product.product_name
-                )}"
-                loading="lazy"
-              >
-            `
-
-            : `
-              <div
-                class="product-image-placeholder"
-              >
-                ${getCategoryIcon(
-                  product.category
-                )}
-              </div>
-            `;
-
-        const stockText =
-          product.stock > 0
-            ? `Stok ${product.stock}`
-            : "Stok habis";
-
-        const safeProductId =
-          escapeAttribute(
-            product.product_id
-          );
-
-        return `
-
-          <article class="product-card">
-
-            ${imageHTML}
-
-            <div class="product-info">
-
-              <span
-                class="product-category"
-              >
-                ${escapeHtml(
-                  product.category || ""
-                )}
-              </span>
-
-              <h3 class="product-name">
-                ${escapeHtml(
-                  product.product_name || ""
-                )}
-              </h3>
-
-              <p class="product-description">
-                ${escapeHtml(
-                  product.description || ""
-                )}
-              </p>
-
-              <div class="product-footer">
-
-                <div>
-
-                  <strong
-                    class="product-price"
-                  >
-                    ${formatRupiah(
-                      product.price
-                    )}
-                  </strong>
-
-                  <span
-                    class="product-stock"
-                  >
-                    ${stockText}
-                  </span>
-
-                </div>
-
-                <button
-                  type="button"
-                  class="add-cart-button"
-                  onclick="addToCart('${safeProductId}')"
-                  ${
-                    product.stock <= 0
-                      ? "disabled"
-                      : ""
-                  }
-                >
-                  + Keranjang
-                </button>
-
-              </div>
-
-            </div>
-
-          </article>
-
-        `;
-
-      })
-      .join("");
-}
-
-
-// ======================================================
-// 10. SEARCH
-// ======================================================
-
-if (searchInput) {
-
-  searchInput.addEventListener(
-    "input",
-    renderProducts
-  );
-
-}
-
-
-// ======================================================
-// 11. CATEGORY FILTER
-// ======================================================
-
-if (categoryList) {
-
-  categoryList.addEventListener(
-    "click",
-    function(event) {
-
-      const button =
-        event.target.closest(
-          ".category-button"
-        );
-
-      if (!button) {
-        return;
-      }
-
-      document
-        .querySelectorAll(
-          ".category-button"
-        )
-        .forEach(item => {
-
-          item.classList.remove(
-            "active"
-          );
-
-        });
-
-      button.classList.add(
-        "active"
-      );
-
-      selectedCategory =
-        button.dataset.category;
-
-      renderProducts();
-
-    }
-  );
-
-}
-
-
-// ======================================================
-// 12. ADD TO CART
-// ======================================================
-
-function addToCart(productId) {
-
-  const product =
-    products.find(
-      item =>
-        String(item.product_id) ===
-        String(productId)
-    );
-
-  if (!product) {
-    return;
-  }
-
-  if (product.stock <= 0) {
-
-    alert(
-      "Produk sedang habis."
-    );
-
-    return;
-  }
-
-  const existingItem =
-    cart.find(
-      item =>
-        String(item.product_id) ===
-        String(productId)
-    );
-
-  if (existingItem) {
-
-    if (
-      existingItem.quantity >=
-      product.stock
-    ) {
-
-      alert(
-        "Jumlah melebihi stok yang tersedia."
-      );
-
+    if (paginatedProducts.length === 0) {
+      grid.innerHTML = `<div class="loading-message">Tidak ada produk ditemukan</div>`;
+      this.updatePaginationControls();
       return;
     }
 
-    existingItem.quantity++;
-
-  }
-
-  else {
-
-    cart.push({
-
-      product_id:
-        product.product_id,
-
-      product_name:
-        product.product_name,
-
-      price:
-        product.price,
-
-      image_url:
-        product.image_url,
-
-      quantity: 1
-
-    });
-
-  }
-
-  saveCart();
-
-  renderCart();
-
-  openCart();
-}
-
-
-// ======================================================
-// 13. SINKRONKAN CART DENGAN SHEET
-// ======================================================
-
-function syncCartWithProducts() {
-
-  cart =
-    cart
-      .map(cartItem => {
-
-        const latestProduct =
-          products.find(
-            product =>
-              String(product.product_id) ===
-              String(cartItem.product_id)
-          );
-
-        if (
-          !latestProduct ||
-          !latestProduct.active ||
-          latestProduct.stock <= 0
-        ) {
-
-          return null;
-
+    grid.innerHTML = paginatedProducts
+      .map(
+        (p) => `
+      <div class="product-card">
+        ${
+          p.image
+            ? `<img src="${Utils.escapeHtml(p.image)}" alt="${Utils.escapeHtml(
+                p.name
+              )}" class="product-image">`
+            : `<div class="product-image-placeholder">${
+                p.category === "Paper"
+                  ? "📜"
+                  : p.category === "Sticker"
+                  ? "🌸"
+                  : p.category === "Journal"
+                  ? "📖"
+                  : p.category === "Decoration"
+                  ? "🎀"
+                  : p.category === "Printable"
+                  ? "🖼️"
+                  : "✨"
+              }</div>`
         }
 
-        return {
+        <div class="product-info">
+          <div class="product-category">${Utils.escapeHtml(p.category || "")}</div>
+          <h3 class="product-name">${Utils.escapeHtml(p.name || "")}</h3>
+          <p class="product-description">${Utils.escapeHtml(p.description || "")}</p>
 
-          product_id:
-            latestProduct.product_id,
-
-          product_name:
-            latestProduct.product_name,
-
-          price:
-            latestProduct.price,
-
-          image_url:
-            latestProduct.image_url,
-
-          quantity:
-            Math.min(
-              Number(cartItem.quantity) || 1,
-              latestProduct.stock
-            )
-
-        };
-
-      })
-      .filter(Boolean);
-
-  saveCart();
-}
-
-
-// ======================================================
-// 14. SAVE CART
-// ======================================================
-
-function saveCart() {
-
-  localStorage.setItem(
-    "scrapbookCart",
-    JSON.stringify(cart)
-  );
-
-}
-
-
-// ======================================================
-// 15. TOTAL CART
-// ======================================================
-
-function calculateCartTotal() {
-
-  return cart.reduce(
-    (total, item) =>
-
-      total +
-      (
-        Number(item.price) *
-        Number(item.quantity)
-      ),
-
-    0
-  );
-
-}
-
-
-// ======================================================
-// 16. RENDER CART
-// ======================================================
-
-function renderCart() {
-
-  if (!cartItems) {
-    return;
-  }
-
-  const totalQuantity =
-    cart.reduce(
-      (total, item) =>
-        total +
-        Number(item.quantity || 0),
-      0
-    );
-
-  if (cartCount) {
-    cartCount.textContent =
-      totalQuantity;
-  }
-
-  const totalPrice =
-    calculateCartTotal();
-
-  if (cartTotal) {
-    cartTotal.textContent =
-      formatRupiah(totalPrice);
-  }
-
-  if (checkoutTotal) {
-    checkoutTotal.textContent =
-      formatRupiah(totalPrice);
-  }
-
-  if (cart.length === 0) {
-
-    cartItems.innerHTML = `
-
-      <div class="empty-cart">
-
-        <span>🛒</span>
-
-        <p>
-          Keranjangmu masih kosong.
-        </p>
-
-      </div>
-
-    `;
-
-    return;
-  }
-
-  cartItems.innerHTML =
-    cart
-      .map(item => {
-
-        const imageHTML =
-          item.image_url
-
-            ? `
-              <img
-                src="${escapeAttribute(
-                  item.image_url
-                )}"
-                class="cart-item-image"
-                alt="${escapeAttribute(
-                  item.product_name
-                )}"
-              >
-            `
-
-            : `
-              <div
-                class="
-                  product-image-placeholder
-                  cart-item-image
-                "
-              >
-                ✨
-              </div>
-            `;
-
-        const safeId =
-          escapeAttribute(
-            item.product_id
-          );
-
-        return `
-
-          <div class="cart-item">
-
-            ${imageHTML}
-
+          <div class="product-footer">
             <div>
-
-              <div
-                class="cart-item-name"
-              >
-                ${escapeHtml(
-                  item.product_name || ""
-                )}
+              <div class="product-price">${Utils.formatRupiah(p.price)}</div>
+              <div class="product-stock">
+                ${p.stock > 0 ? `${p.stock} tersedia` : "Habis"}
               </div>
-
-              <div
-                class="cart-item-price"
-              >
-                ${formatRupiah(
-                  item.price
-                )}
-              </div>
-
-              <div
-                style="
-                  margin-top:8px;
-                  display:flex;
-                  align-items:center;
-                  gap:8px;
-                "
-              >
-
-                <button
-                  type="button"
-                  onclick="
-                    changeQuantity(
-                      '${safeId}',
-                      -1
-                    )
-                  "
-                >
-                  −
-                </button>
-
-                <strong>
-                  ${item.quantity}
-                </strong>
-
-                <button
-                  type="button"
-                  onclick="
-                    changeQuantity(
-                      '${safeId}',
-                      1
-                    )
-                  "
-                >
-                  +
-                </button>
-
-                <button
-                  type="button"
-                  onclick="
-                    removeFromCart(
-                      '${safeId}'
-                    )
-                  "
-                  style="
-                    margin-left:auto;
-                    border:0;
-                    background:transparent;
-                    color:#b05e6b;
-                  "
-                >
-                  Hapus
-                </button>
-
-              </div>
-
             </div>
-
-          </div>
-
-        `;
-
-      })
-      .join("");
-}
-
-
-// ======================================================
-// 17. UBAH QUANTITY
-// ======================================================
-
-function changeQuantity(
-  productId,
-  change
-) {
-
-  const cartItem =
-    cart.find(
-      item =>
-        String(item.product_id) ===
-        String(productId)
-    );
-
-  const product =
-    products.find(
-      item =>
-        String(item.product_id) ===
-        String(productId)
-    );
-
-  if (
-    !cartItem ||
-    !product
-  ) {
-
-    return;
-
-  }
-
-  cartItem.quantity += change;
-
-  if (
-    cartItem.quantity <= 0
-  ) {
-
-    removeFromCart(
-      productId
-    );
-
-    return;
-
-  }
-
-  if (
-    cartItem.quantity >
-    product.stock
-  ) {
-
-    cartItem.quantity =
-      product.stock;
-
-    alert(
-      "Jumlah maksimal sesuai stok."
-    );
-
-  }
-
-  saveCart();
-
-  renderCart();
-
-}
-
-
-// ======================================================
-// 18. HAPUS PRODUK CART
-// ======================================================
-
-function removeFromCart(
-  productId
-) {
-
-  cart =
-    cart.filter(
-      item =>
-        String(item.product_id) !==
-        String(productId)
-    );
-
-  saveCart();
-
-  renderCart();
-
-}
-
-
-// ======================================================
-// 19. OPEN / CLOSE CART
-// ======================================================
-
-function openCart() {
-
-  if (cartDrawer) {
-
-    cartDrawer.classList.add(
-      "active"
-    );
-
-  }
-
-  if (cartOverlay) {
-
-    cartOverlay.classList.add(
-      "active"
-    );
-
-  }
-
-}
-
-
-function closeCart() {
-
-  if (cartDrawer) {
-
-    cartDrawer.classList.remove(
-      "active"
-    );
-
-  }
-
-  if (cartOverlay) {
-
-    cartOverlay.classList.remove(
-      "active"
-    );
-
-  }
-
-}
-
-
-if (openCartButton) {
-
-  openCartButton.addEventListener(
-    "click",
-    openCart
-  );
-
-}
-
-
-if (closeCartButton) {
-
-  closeCartButton.addEventListener(
-    "click",
-    closeCart
-  );
-
-}
-
-
-if (cartOverlay) {
-
-  cartOverlay.addEventListener(
-    "click",
-    closeCart
-  );
-
-}
-
-
-// ======================================================
-// 20. CHECKOUT
-// ======================================================
-
-if (checkoutButton) {
-
-  checkoutButton.addEventListener(
-    "click",
-    function() {
-
-      if (cart.length === 0) {
-
-        alert(
-          "Keranjang masih kosong."
-        );
-
-        return;
-
-      }
-
-      closeCart();
-
-      if (checkoutModal) {
-
-        checkoutModal.classList.add(
-          "active"
-        );
-
-      }
-
-    }
-  );
-
-}
-
-
-if (closeCheckoutButton) {
-
-  closeCheckoutButton.addEventListener(
-    "click",
-    function() {
-
-      if (checkoutModal) {
-
-        checkoutModal.classList.remove(
-          "active"
-        );
-
-      }
-
-    }
-  );
-
-}
-
-
-// ======================================================
-// 21. CHECKOUT → GOOGLE SHEETS
-// ======================================================
-
-if (checkoutForm) {
-
-  checkoutForm.addEventListener(
-    "submit",
-    async function(event) {
-
-      event.preventDefault();
-
-      if (cart.length === 0) {
-
-        alert(
-          "Keranjang masih kosong."
-        );
-
-        return;
-
-      }
-
-      const submitButton =
-        checkoutForm.querySelector(
-          ".submit-order-button"
-        );
-
-      const originalText =
-        submitButton
-          ? submitButton.textContent
-          : "";
-
-      if (submitButton) {
-
-        submitButton.disabled = true;
-
-        submitButton.textContent =
-          "Memproses pesanan...";
-
-      }
-
-      try {
-
-        const payload = {
-
-          action:
-            "createOrder",
-
-          customer_name:
-            document
-              .getElementById(
-                "customerName"
-              )
-              .value
-              .trim(),
-
-          whatsapp:
-            document
-              .getElementById(
-                "customerWhatsapp"
-              )
-              .value
-              .trim(),
-
-          address:
-            document
-              .getElementById(
-                "customerAddress"
-              )
-              .value
-              .trim(),
-
-          payment_method:
-            document
-              .getElementById(
-                "paymentMethod"
-              )
-              .value,
-
-          notes:
-            document
-              .getElementById(
-                "customerNotes"
-              )
-              .value
-              .trim(),
-
-          items:
-            cart.map(item => ({
-
-              product_id:
-                item.product_id,
-
-              quantity:
-                item.quantity
-
-            }))
-
-        };
-
-
-        const response =
-          await fetch(
-            API_URL,
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "text/plain;charset=utf-8"
-              },
-
-              body:
-                JSON.stringify(payload)
-            }
-          );
-
-
-        const result =
-          await response.json();
-
-
-        if (!result.success) {
-
-          throw new Error(
-            result.message ||
-            "Pesanan gagal dibuat."
-          );
-
-        }
-
-
-        alert(
-          "✅ PESANAN BERHASIL!\n\n" +
-          "Order ID:\n" +
-          result.order_id +
-          "\n\n" +
-          "Total:\n" +
-          formatRupiah(
-            result.total
-          )
-        );
-
-
-        cart = [];
-
-        saveCart();
-
-        renderCart();
-
-
-        checkoutForm.reset();
-
-
-        if (checkoutModal) {
-
-          checkoutModal.classList.remove(
-            "active"
-          );
-
-        }
-
-
-        await loadProducts();
-
-      }
-
-      catch (error) {
-
-        console.error(
-          "CREATE ORDER ERROR:",
-          error
-        );
-
-        alert(
-          "❌ Pesanan belum berhasil.\n\n" +
-          error.message
-        );
-
-      }
-
-      finally {
-
-        if (submitButton) {
-
-          submitButton.disabled =
-            false;
-
-          submitButton.textContent =
-            originalText;
-
-        }
-
-      }
-
-    }
-  );
-
-}
-
-
-// ======================================================
-// 22. REFERENCE LAMA
-// ======================================================
-
-let references = [];
-
-let currentReferenceIndex = 0;
-
-
-async function loadReferences() {
-
-  if (referenceLoading) {
-
-    referenceLoading.style.display =
-      "block";
-
-    referenceLoading.textContent =
-      "Memuat referensi...";
-
-  }
-
-  if (referenceCarousel) {
-
-    referenceCarousel.style.display =
-      "none";
-
-  }
-
-  try {
-
-    const response =
-      await fetch(
-        `${API_URL}?action=references&t=${Date.now()}`
-      );
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Gagal menghubungi server."
-      );
-
-    }
-
-    const data =
-      await response.json();
-
-    if (!data.success) {
-
-      throw new Error(
-        data.message ||
-        "Referensi gagal dimuat."
-      );
-
-    }
-
-    references =
-      Array.isArray(data.references)
-        ? data.references
-        : [];
-
-    references =
-      references.filter(
-        item =>
-          item.image_url ||
-          item.image_urls
-      );
-
-    currentReferenceIndex = 0;
-
-    renderReference();
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "LOAD REFERENCES ERROR:",
-      error
-    );
-
-    if (referenceLoading) {
-
-      referenceLoading.style.display =
-        "block";
-
-      referenceLoading.textContent =
-        "⚠️ Referensi belum dapat dimuat.";
-
-    }
-
-    if (referenceCarousel) {
-
-      referenceCarousel.style.display =
-        "none";
-
-    }
-
-  }
-
-}
-
-
-// ======================================================
-// 23. RENDER REFERENCE LAMA
-// ======================================================
-
-function renderReference() {
-
-  if (
-    !referenceLoading ||
-    !referenceCarousel
-  ) {
-
-    return;
-
-  }
-
-  if (references.length === 0) {
-
-    referenceLoading.style.display =
-      "block";
-
-    referenceLoading.textContent =
-      "Belum ada referensi.";
-
-    referenceCarousel.style.display =
-      "none";
-
-    if (referenceTitle) {
-      referenceTitle.textContent = "";
-    }
-
-    if (referenceDots) {
-      referenceDots.innerHTML = "";
-    }
-
-    if (referenceCounter) {
-      referenceCounter.textContent = "";
-    }
-
-    return;
-
-  }
-
-
-  referenceLoading.style.display =
-    "none";
-
-  referenceCarousel.style.display =
-    "flex";
-
-
-  const reference =
-    references[
-      currentReferenceIndex
-    ];
-
-
-  if (referenceImage) {
-
-    referenceImage.src =
-      reference.image_url ||
-      reference.image_urls ||
-      "";
-
-    referenceImage.alt =
-      reference.title ||
-      "Referensi Scrapbook";
-
-  }
-
-
-  if (referenceTitle) {
-
-    referenceTitle.textContent =
-      reference.title || "";
-
-  }
-
-
-  if (referenceCounter) {
-
-    referenceCounter.textContent =
-      `${currentReferenceIndex + 1} / ${references.length}`;
-
-  }
-
-
-  if (referenceDots) {
-
-    referenceDots.innerHTML =
-      references
-        .map(
-          (item, index) => `
-
             <button
               type="button"
-              class="reference-dot ${
-                index === currentReferenceIndex
-                  ? "active"
-                  : ""
-              }"
-              onclick="goToReference(${index})"
-              aria-label="Referensi ${
-                index + 1
-              }"
-            ></button>
-
-          `
-        )
-        .join("");
-
-  }
-
-
-  const showNavigation =
-    references.length > 1;
-
-
-  if (referencePrev) {
-
-    referencePrev.style.display =
-      showNavigation
-        ? "grid"
-        : "none";
-
-  }
-
-
-  if (referenceNext) {
-
-    referenceNext.style.display =
-      showNavigation
-        ? "grid"
-        : "none";
-
-  }
-
-}
-
-
-// ======================================================
-// 24. NEXT REFERENCE
-// ======================================================
-
-function nextReference() {
-
-  if (references.length <= 1) {
-    return;
-  }
-
-  currentReferenceIndex =
-    (
-      currentReferenceIndex + 1
-    ) %
-    references.length;
-
-  renderReference();
-
-}
-
-
-// ======================================================
-// 25. PREVIOUS REFERENCE
-// ======================================================
-
-function previousReference() {
-
-  if (references.length <= 1) {
-    return;
-  }
-
-  currentReferenceIndex =
-    (
-      currentReferenceIndex -
-      1 +
-      references.length
-    ) %
-    references.length;
-
-  renderReference();
-
-}
-
-
-// ======================================================
-// 26. PILIH DOT REFERENCE
-// ======================================================
-
-function goToReference(index) {
-
-  if (
-    index < 0 ||
-    index >= references.length
-  ) {
-
-    return;
-
-  }
-
-  currentReferenceIndex =
-    index;
-
-  renderReference();
-
-}
-
-
-// ======================================================
-// 27. OPEN REFERENCE
-// ======================================================
-
-function openReference() {
-
-  if (!referenceModal) {
-    return;
-  }
-
-  referenceModal.classList.add(
-    "active"
-  );
-
-  renderReference();
-
-}
-
-
-// ======================================================
-// 28. CLOSE REFERENCE
-// ======================================================
-
-function closeReference() {
-
-  if (!referenceModal) {
-    return;
-  }
-
-  referenceModal.classList.remove(
-    "active"
-  );
-
-}
-
-
-// ======================================================
-// 29. BUTTON EVENTS REFERENCE LAMA
-// ======================================================
-
-if (openReferenceButton) {
-
-  openReferenceButton.addEventListener(
-    "click",
-    openReference
-  );
-
-}
-
-
-if (closeReferenceButton) {
-
-  closeReferenceButton.addEventListener(
-    "click",
-    closeReference
-  );
-
-}
-
-
-if (referencePrev) {
-
-  referencePrev.addEventListener(
-    "click",
-    previousReference
-  );
-
-}
-
-
-if (referenceNext) {
-
-  referenceNext.addEventListener(
-    "click",
-    nextReference
-  );
-
-}
-
-
-if (referenceModal) {
-
-  referenceModal.addEventListener(
-    "click",
-    function(event) {
-
-      if (
-        event.target ===
-        referenceModal
-      ) {
-
-        closeReference();
-
-      }
-
-    }
-  );
-
-}
-
-
-// ======================================================
-// 30. SWIPE REFERENCE LAMA
-// ======================================================
-
-let referenceTouchStartX = 0;
-
-
-if (referenceImage) {
-
-  referenceImage.addEventListener(
-    "touchstart",
-    function(event) {
-
-      referenceTouchStartX =
-        event.touches[0].clientX;
-
-    },
-    {
-      passive: true
-    }
-  );
-
-
-  referenceImage.addEventListener(
-    "touchend",
-    function(event) {
-
-      const touchEndX =
-        event.changedTouches[0].clientX;
-
-      const difference =
-        referenceTouchStartX -
-        touchEndX;
-
-      if (
-        Math.abs(difference) < 50
-      ) {
-
-        return;
-
-      }
-
-      if (difference > 0) {
-
-        nextReference();
-
-      }
-
-      else {
-
-        previousReference();
-
-      }
-
-    },
-    {
-      passive: true
-    }
-  );
-
-}
-
-
-// ======================================================
-// 31. KEYBOARD REFERENCE LAMA
-// ======================================================
-
-document.addEventListener(
-  "keydown",
-  function(event) {
-
-    if (
-      !referenceModal ||
-      !referenceModal
-        .classList
-        .contains("active")
-    ) {
-
-      return;
-
-    }
-
-    if (
-      event.key ===
-      "ArrowRight"
-    ) {
-
-      nextReference();
-
-    }
-
-    if (
-      event.key ===
-      "ArrowLeft"
-    ) {
-
-      previousReference();
-
-    }
-
-    if (
-      event.key ===
-      "Escape"
-    ) {
-
-      closeReference();
-
-    }
-
-  }
-);
-
-
-// ======================================================
-// 32. REFERENCES INSTAGRAM FEED
-// ======================================================
-
-const referencesState = {
-
-  all: [],
-
-  currentViewId: null,
-
-  currentImageIndex: 0,
-
-  touchStartX: 0,
-
-  touchEndX: 0,
-
-  isModalOpen: false
-
-};
-
-
-// ======================================================
-// 33. LOAD REFERENCES INSTAGRAM FEED
-// ======================================================
-
-async function loadReferencesInstaFeed() {
-
-  const section =
-    document.getElementById(
-      "references-section"
-    );
-
-  const grid =
-    document.getElementById(
-      "references-grid"
-    );
-
-  const loading =
-    document.getElementById(
-      "references-loading"
-    );
-
-  const empty =
-    document.getElementById(
-      "references-empty"
-    );
-
-
-  if (!section || !grid) {
-
-    console.error(
-      "References feed HTML component tidak ditemukan"
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    if (loading) {
-
-      loading.style.display =
-        "block";
-
-    }
-
-    if (empty) {
-
-      empty.style.display =
-        "none";
-
-    }
-
-    grid.innerHTML = "";
-
-
-    // ==================================================
-    // PENTING:
-    // Sebelumnya menggunakan API_BASE_URL.
-    // Sekarang menggunakan API_URL yang memang
-    // sudah didefinisikan di bagian atas.
-    // ==================================================
-
-    const response =
-      await fetch(
-        `${API_URL}?action=references&t=${Date.now()}`
-      );
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        "Gagal menghubungi server."
-      );
-
-    }
-
-
-    const data =
-      await response.json();
-
-
-    if (
-      !data.success ||
-      !Array.isArray(
-        data.references
-      )
-    ) {
-
-      throw new Error(
-        "Failed to load references"
-      );
-
-    }
-
-
-    referencesState.all =
-      data.references;
-
-
-    if (
-      referencesState.all.length === 0
-    ) {
-
-      if (loading) {
-
-        loading.style.display =
-          "none";
-
-      }
-
-      if (empty) {
-
-        empty.style.display =
-          "block";
-
-      }
-
-      section.style.display =
-        "block";
-
-      return;
-
-    }
-
-
-    renderReferencesGrid(
-      referencesState.all,
-      grid
-    );
-
-
-    section.style.display =
-      "block";
-
-
-    if (loading) {
-
-      loading.style.display =
-        "none";
-
-    }
-
-    if (empty) {
-
-      empty.style.display =
-        "none";
-
-    }
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "Error loading references:",
-      error
-    );
-
-
-    if (loading) {
-
-      loading.style.display =
-        "none";
-
-    }
-
-    if (empty) {
-
-      empty.style.display =
-        "block";
-
-    }
-
-    section.style.display =
-      "block";
-
-  }
-
-}
-
-
-// ======================================================
-// 34. RENDER REFERENCES GRID
-// ======================================================
-
-function renderReferencesGrid(
-  referencesData,
-  container
-) {
-
-  container.innerHTML =
-    referencesData
-      .map(ref => {
-
-        const imageUrls =
-          parseImageUrls(
-            ref.image_urls ||
-            ref.image_url
-          );
-
-        const hasMultiple =
-          imageUrls.length > 1;
-
-        const hasDescription =
-          ref.description &&
-          String(
-            ref.description
-          ).trim();
-
-
-        if (imageUrls.length === 0) {
-          return "";
-        }
-
-
-        return `
-
-          <div
-            class="
-              reference-card
-              ${
-                hasMultiple
-                  ? "has-multiple"
-                  : ""
-              }
-            "
-
-            onclick="
-              openReferencesModal(
-                '${escapeAttribute(
-                  ref.reference_id
-                )}'
-              )
-            "
-
-            tabindex="0"
-
-            role="button"
-
-            aria-label="${escapeAttribute(
-              ref.title || "Referensi"
-            )}"
-          >
-
-            <div
-              class="
-                reference-card-image-container
-              "
+              class="add-cart-button"
+              onclick="CartModule.add('${Utils.escapeHtml(p.id)}')"
+              ${p.stock <= 0 ? "disabled" : ""}
             >
-
-              <img
-                class="
-                  reference-card-image
-                "
-
-                src="${escapeAttribute(
-                  imageUrls[0]
-                )}"
-
-                alt="${escapeAttribute(
-                  ref.title ||
-                  "Referensi Scrapbook"
-                )}"
-
-                loading="lazy"
-
-                onload="
-                  this.parentElement.style.background='transparent'
-                "
-              />
-
-            </div>
-
-
-            ${
-              hasMultiple
-
-                ? `
-                  <div
-                    class="
-                      reference-card-multi-badge
-                    "
-                  >
-                    📸
-                    ${imageUrls.length}
-                    images
-                  </div>
-                `
-
-                : ""
-            }
-
-
-            <div
-              class="
-                reference-card-overlay
-              "
-            >
-
-              <h3
-                class="
-                  reference-card-title
-                "
-              >
-                ${escapeHtml(
-                  ref.title || ""
-                )}
-              </h3>
-
-
-              ${
-                hasDescription
-
-                  ? `
-                    <p
-                      class="
-                        reference-card-description
-                      "
-                    >
-                      ${escapeHtml(
-                        ref.description
-                      )}
-                    </p>
-                  `
-
-                  : ""
-              }
-
-            </div>
-
+              🛒
+            </button>
           </div>
-
-        `;
-
-      })
+        </div>
+      </div>
+    `
+      )
       .join("");
 
-
-  container
-    .querySelectorAll(
-      ".reference-card"
-    )
-    .forEach(card => {
-
-      card.addEventListener(
-        "keydown",
-        event => {
-
-          if (
-            event.key === "Enter" ||
-            event.key === " "
-          ) {
-
-            event.preventDefault();
-
-            card.click();
-
-          }
-
-        }
-      );
-
-    });
-
-}
-
-
-// ======================================================
-// 35. PARSE IMAGE URL
-// ======================================================
-
-function parseImageUrls(
-  urlString
-) {
-
-  if (!urlString) {
-    return [];
-  }
-
-  return String(urlString)
-
-    .split(",")
-
-    .map(
-      url =>
-        url.trim()
-    )
-
-    .filter(
-      url =>
-        url.length > 0
-    );
-
-}
-
-
-// ======================================================
-// 36. OPEN REFERENCES MODAL
-// ======================================================
-
-function openReferencesModal(
-  referenceId
-) {
-
-  const reference =
-    referencesState.all.find(
-      item =>
-        String(
-          item.reference_id
-        ) ===
-        String(referenceId)
-    );
-
-
-  if (!reference) {
-    return;
-  }
-
-
-  referencesState.currentViewId =
-    referenceId;
-
-  referencesState.currentImageIndex =
-    0;
-
-
-  const imageUrls =
-    parseImageUrls(
-      reference.image_urls ||
-      reference.image_url
-    );
-
-
-  if (
-    imageUrls.length === 0
-  ) {
-
-    return;
-
-  }
-
-
-  const hasMultiple =
-    imageUrls.length > 1;
-
-
-  const modalTitle =
-    document.getElementById(
-      "references-modal-title"
-    );
-
-  const modalDescription =
-    document.getElementById(
-      "references-modal-description"
-    );
-
-  const modalImage =
-    document.getElementById(
-      "references-modal-image"
-    );
-
-  const counter =
-    document.getElementById(
-      "references-image-counter"
-    );
-
-  const carouselControls =
-    document.getElementById(
-      "references-carousel-controls"
-    );
-
-  const modal =
-    document.getElementById(
-      "references-modal"
-    );
-
-
-  if (modalTitle) {
-
-    modalTitle.textContent =
-      reference.title || "";
-
-  }
-
-
-  if (modalDescription) {
-
-    modalDescription.textContent =
-      reference.description ||
-      "Referensi inspirasi desain scrapbook";
-
-  }
-
-
-  if (modalImage) {
-
-    modalImage.src =
-      imageUrls[0];
-
-  }
-
-
-  if (counter) {
-
-    counter.textContent =
-      `1/${imageUrls.length}`;
-
-  }
-
-
-  if (carouselControls) {
-
-    if (hasMultiple) {
-
-      carouselControls.style.display =
-        "flex";
-
-      renderCarouselDots(
-        imageUrls.length
-      );
-
+    this.updatePaginationControls();
+  },
+
+  updatePaginationControls() {
+    const totalPages = this.getTotalPages();
+    const controls = document.getElementById("paginationControls");
+    const info = document.getElementById("paginationInfo");
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+
+    if (totalPages <= 1) {
+      controls.style.display = "none";
+      return;
     }
 
-    else {
-
-      carouselControls.style.display =
-        "none";
-
-    }
-
-  }
-
-
-  if (!modal) {
-    return;
-  }
-
-
-  modal.style.display =
-    "flex";
-
-  referencesState.isModalOpen =
-    true;
-
-
-  setupModalInteractions();
-
-
-  document.body.style.overflow =
-    "hidden";
-
-}
-
-
-// ======================================================
-// 37. CLOSE REFERENCES MODAL
-// ======================================================
-
-function closeReferencesModal() {
-
-  const modal =
-    document.getElementById(
-      "references-modal"
-    );
-
-
-  if (!modal) {
-    return;
-  }
-
-
-  modal.style.display =
-    "none";
-
-
-  referencesState.isModalOpen =
-    false;
-
-
-  referencesState.currentViewId =
-    null;
-
-
-  document.body.style.overflow =
-    "";
-
-}
-
-
-// ======================================================
-// 38. NEXT IMAGE
-// ======================================================
-
-function nextReferenceImage() {
-
-  const reference =
-    referencesState.all.find(
-      item =>
-        String(
-          item.reference_id
-        ) ===
-        String(
-          referencesState.currentViewId
-        )
-    );
-
-
-  if (!reference) {
-    return;
-  }
-
-
-  const imageUrls =
-    parseImageUrls(
-      reference.image_urls ||
-      reference.image_url
-    );
-
-
-  const maxIndex =
-    imageUrls.length - 1;
-
-
-  if (
-    referencesState.currentImageIndex <
-    maxIndex
-  ) {
-
-    referencesState.currentImageIndex++;
-
-    updateModalImage(
-      reference,
-      imageUrls
-    );
-
-  }
-
-}
-
-
-// ======================================================
-// 39. PREVIOUS IMAGE
-// ======================================================
-
-function prevReferenceImage() {
-
-  const reference =
-    referencesState.all.find(
-      item =>
-        String(
-          item.reference_id
-        ) ===
-        String(
-          referencesState.currentViewId
-        )
-    );
-
-
-  if (!reference) {
-    return;
-  }
-
-
-  if (
-    referencesState.currentImageIndex >
-    0
-  ) {
-
-    referencesState.currentImageIndex--;
-
-    const imageUrls =
-      parseImageUrls(
-        reference.image_urls ||
-        reference.image_url
-      );
-
-    updateModalImage(
-      reference,
-      imageUrls
-    );
-
-  }
-
-}
-
-
-// ======================================================
-// 40. GO TO IMAGE
-// ======================================================
-
-function goToReferenceImage(
-  index
-) {
-
-  const reference =
-    referencesState.all.find(
-      item =>
-        String(
-          item.reference_id
-        ) ===
-        String(
-          referencesState.currentViewId
-        )
-    );
-
-
-  if (!reference) {
-    return;
-  }
-
-
-  const imageUrls =
-    parseImageUrls(
-      reference.image_urls ||
-      reference.image_url
-    );
-
-
-  if (
-    index >= 0 &&
-    index < imageUrls.length
-  ) {
-
-    referencesState.currentImageIndex =
-      index;
-
-    updateModalImage(
-      reference,
-      imageUrls
-    );
-
-  }
-
-}
-
-
-// ======================================================
-// 41. UPDATE MODAL IMAGE
-// ======================================================
-
-function updateModalImage(
-  reference,
-  imageUrls
-) {
-
-  const idx =
-    referencesState.currentImageIndex;
-
-
-  const modalImage =
-    document.getElementById(
-      "references-modal-image"
-    );
-
-  const counter =
-    document.getElementById(
-      "references-image-counter"
-    );
-
-
-  if (modalImage) {
-
-    modalImage.src =
-      imageUrls[idx];
-
-  }
-
-
-  if (counter) {
-
-    counter.textContent =
-      `${idx + 1}/${imageUrls.length}`;
-
-  }
-
-
-  document
-    .querySelectorAll(
-      ".carousel-dot"
-    )
-    .forEach(
-      (dot, index) => {
-
-        dot.classList.toggle(
-          "active",
-          index === idx
-        );
-
-      }
-    );
-
-}
-
-
-// ======================================================
-// 42. RENDER CAROUSEL DOTS
-// ======================================================
-
-function renderCarouselDots(
-  count
-) {
-
-  const container =
-    document.getElementById(
-      "references-carousel-dots"
-    );
-
-
-  if (!container) {
-    return;
-  }
-
-
-  container.innerHTML =
-    Array.from(
-      {
-        length: count
-      },
-      (_, index) => `
-
-        <div
-          class="
-            carousel-dot
-            ${
-              index === 0
-                ? "active"
-                : ""
-            }
-          "
-
-          onclick="
-            goToReferenceImage(
-              ${index}
-            )
-          "
-
-          role="button"
-
-          tabindex="0"
-
-          aria-label="
-            Go to image
-            ${index + 1}
-          "
-        ></div>
-
+    controls.style.display = "flex";
+    info.textContent = `Halaman ${this.currentPage} dari ${totalPages}`;
+    prevBtn.disabled = this.currentPage === 1;
+    nextBtn.disabled = this.currentPage === totalPages;
+  },
+
+  renderCategories() {
+    const active = this.getActiveProducts();
+    const categories = [...new Set(active.map((p) => p.category).filter(Boolean))];
+    const list = document.getElementById("categoryList");
+
+    list.innerHTML = `
+      <button type="button" class="category-button active" data-category="all">Semua</button>
+      ${categories
+        .map(
+          (cat) => `
+        <button type="button" class="category-button" data-category="${Utils.escapeHtml(cat)}">
+          ${Utils.escapeHtml(cat)}
+        </button>
       `
-    )
-    .join("");
-
-
-  container
-    .querySelectorAll(
-      ".carousel-dot"
-    )
-    .forEach(dot => {
-
-      dot.addEventListener(
-        "keydown",
-        event => {
-
-          if (
-            event.key === "Enter" ||
-            event.key === " "
-          ) {
-
-            event.preventDefault();
-
-            dot.click();
-
-          }
-
-        }
-      );
-
-    });
-
-}
-
-
-// ======================================================
-// 43. MODAL INTERACTIONS
-// ======================================================
-
-function setupModalInteractions() {
-
-  const modal =
-    document.getElementById(
-      "references-modal"
-    );
-
-
-  if (!modal) {
-    return;
-  }
-
-
-  // Hapus listener lama dengan clone
-  // supaya tidak terjadi event listener ganda.
-
-  const newModal =
-    modal.cloneNode(true);
-
-
-  modal.parentElement.replaceChild(
-    newModal,
-    modal
-  );
-
-
-  const overlay =
-    newModal.querySelector(
-      ".references-modal-overlay"
-    );
-
-
-  if (overlay) {
-
-    overlay.addEventListener(
-      "click",
-      closeReferencesModal
-    );
-
-  }
-
-
-  document.addEventListener(
-    "keydown",
-    handleModalKeyboard
-  );
-
-
-  const carouselWrapper =
-    newModal.querySelector(
-      ".references-carousel-wrapper"
-    );
-
-
-  if (carouselWrapper) {
-
-    carouselWrapper.addEventListener(
-      "touchstart",
-      handleTouchStart,
-      {
-        passive: true
-      }
-    );
-
-
-    carouselWrapper.addEventListener(
-      "touchend",
-      handleTouchEnd,
-      {
-        passive: true
-      }
-    );
-
-  }
-
-}
-
-
-// ======================================================
-// 44. KEYBOARD MODAL
-// ======================================================
-
-function handleModalKeyboard(
-  event
-) {
-
-  if (
-    !referencesState.isModalOpen
-  ) {
-
-    return;
-
-  }
-
-
-  switch (event.key) {
-
-    case "Escape":
-
-      closeReferencesModal();
-
-      break;
-
-
-    case "ArrowRight":
-
-      nextReferenceImage();
-
-      break;
-
-
-    case "ArrowLeft":
-
-      prevReferenceImage();
-
-      break;
-
-  }
-
-}
-
-
-// ======================================================
-// 45. TOUCH START
-// ======================================================
-
-function handleTouchStart(
-  event
-) {
-
-  referencesState.touchStartX =
-    event.changedTouches[0]
-      .screenX;
-
-}
-
-
-// ======================================================
-// 46. TOUCH END
-// ======================================================
-
-function handleTouchEnd(
-  event
-) {
-
-  referencesState.touchEndX =
-    event.changedTouches[0]
-      .screenX;
-
-
-  if (
-    !referencesState.isModalOpen
-  ) {
-
-    return;
-
-  }
-
-
-  const reference =
-    referencesState.all.find(
-      item =>
-        String(
-          item.reference_id
-        ) ===
-        String(
-          referencesState.currentViewId
         )
-    );
+        .join("")}
+    `;
 
+    list.addEventListener("click", (e) => {
+      if (e.target.classList.contains("category-button")) {
+        list.querySelectorAll(".category-button").forEach((b) => b.classList.remove("active"));
+        e.target.classList.add("active");
+        this.selectedCategory = e.target.dataset.category;
+        this.filter(document.getElementById("searchInput").value);
+      }
+    });
+  },
 
-  if (!reference) {
-    return;
-  }
+  nextPage() {
+    if (this.currentPage < this.getTotalPages()) {
+      this.currentPage++;
+      this.render();
+      document.getElementById("productGrid").scrollIntoView({ behavior: "smooth" });
+    }
+  },
 
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.render();
+      document.getElementById("productGrid").scrollIntoView({ behavior: "smooth" });
+    }
+  },
+};
 
-  const minSwipeDistance =
-    50;
+// =========================================================
+// CART MODULE
+// =========================================================
 
+const CartModule = {
+  items: [],
+  STORAGE_KEY: "nikiara_cart",
 
-  const difference =
-    referencesState.touchStartX -
-    referencesState.touchEndX;
+  init() {
+    this.items = this.loadFromStorage();
+    this.render();
+  },
 
+  loadFromStorage() {
+    try {
+      return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || [];
+    } catch {
+      return [];
+    }
+  },
 
-  if (
-    Math.abs(difference) >
-    minSwipeDistance
-  ) {
+  saveToStorage() {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.items));
+  },
 
-    if (difference > 0) {
+  add(productId) {
+    const product = ProductsModule.products.find((p) => p.id === productId);
+    if (!product) return;
 
-      nextReferenceImage();
+    const existing = this.items.find((item) => item.id === productId);
 
+    if (existing) {
+      existing.qty++;
+    } else {
+      this.items.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        qty: 1,
+      });
     }
 
-    else {
+    this.saveToStorage();
+    this.render();
+    Utils.showNotification(`${product.name} ditambahkan ke keranjang`);
+  },
 
-      prevReferenceImage();
+  remove(productId) {
+    this.items = this.items.filter((item) => item.id !== productId);
+    this.saveToStorage();
+    this.render();
+  },
 
+  updateQty(productId, qty) {
+    const item = this.items.find((i) => i.id === productId);
+    if (item) {
+      item.qty = Math.max(1, qty);
+      this.saveToStorage();
+      this.render();
+    }
+  },
+
+  getTotal() {
+    return this.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  },
+
+  isEmpty() {
+    return this.items.length === 0;
+  },
+
+  render() {
+    const count = document.getElementById("cartCount");
+    const cartItems = document.getElementById("cartItems");
+    const total = document.getElementById("cartTotal");
+
+    const totalQty = this.items.reduce((sum, item) => sum + item.qty, 0);
+    count.textContent = totalQty;
+    total.textContent = Utils.formatRupiah(this.getTotal());
+
+    if (this.isEmpty()) {
+      cartItems.innerHTML = `
+        <div class="empty-cart">
+          <span>🛒</span>
+          <p>Keranjangmu masih kosong.</p>
+        </div>
+      `;
+      document.getElementById("checkoutButton").disabled = true;
+      return;
     }
 
-  }
+    document.getElementById("checkoutButton").disabled = false;
 
-}
+    cartItems.innerHTML = this.items
+      .map(
+        (item) => `
+      <div class="cart-item">
+        ${
+          item.image
+            ? `<img src="${Utils.escapeHtml(item.image)}" class="cart-item-image" alt="${Utils.escapeHtml(
+                item.name
+              )}">`
+            : `<div class="cart-item-image" style="background: #f1e8e4; display: grid; place-items: center;">📦</div>`
+        }
 
+        <div>
+          <div class="cart-item-name">${Utils.escapeHtml(item.name)}</div>
+          <div class="cart-item-price">${Utils.formatRupiah(item.price)}</div>
+          <div class="cart-item-qty">Qty: ${item.qty}</div>
 
-// ======================================================
-// 47. ESCAPE HTML
-// ======================================================
+          <div class="cart-item-controls">
+            <button type="button" class="qty-button" onclick="CartModule.updateQty('${Utils.escapeHtml(
+              item.id
+            )}', ${item.qty - 1})">−</button>
+            <span style="width: 20px; text-align: center;">${item.qty}</span>
+            <button type="button" class="qty-button" onclick="CartModule.updateQty('${Utils.escapeHtml(
+              item.id
+            )}', ${item.qty + 1})">+</button>
+            <button type="button" class="remove-item-button" onclick="CartModule.remove('${Utils.escapeHtml(
+              item.id
+            )}')">Hapus</button>
+          </div>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  },
+};
 
-function escapeHtml(text) {
+// =========================================================
+// REFERENCES MODULE
+// =========================================================
 
-  if (!text) {
-    return "";
-  }
+const ReferencesModule = {
+  references: [],
+  currentViewId: null,
+  currentImageIndex: 0,
 
-  const map = {
+  async load() {
+    try {
+      const data = await Utils.apiCall({ action: "references" });
 
-    "&": "&amp;",
+      if (!data.success) throw new Error(data.message || "Failed to load references");
 
-    "<": "&lt;",
+      this.references = data.references || [];
 
-    ">": "&gt;",
+      if (this.references.length > 0) {
+        document.getElementById("references-section").style.display = "block";
+        this.renderGrid();
+      }
+    } catch (error) {
+      console.error("❌ Load references error:", error);
+    }
+  },
 
-    '"': "&quot;",
+  renderGrid() {
+    const grid = document.getElementById("references-grid");
+    const empty = document.getElementById("references-empty");
 
-    "'": "&#039;"
-
-  };
-
-  return String(text)
-    .replace(
-      /[&<>"']/g,
-      character =>
-        map[character]
-    );
-
-}
-
-
-// ======================================================
-// 48. ESCAPE ATTRIBUTE
-// ======================================================
-
-function escapeAttribute(
-  text
-) {
-
-  if (!text) {
-    return "";
-  }
-
-  return String(text)
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    );
-
-}
-
-
-// ======================================================
-// 49. CLOSE NEW REFERENCE MODAL
-// ======================================================
-
-document.addEventListener(
-  "click",
-  function(event) {
-
-    const modal =
-      document.getElementById(
-        "references-modal"
-      );
-
-
-    if (
-      modal &&
-      event.target === modal
-    ) {
-
-      closeReferencesModal();
-
+    if (this.references.length === 0) {
+      empty.style.display = "block";
+      grid.style.display = "none";
+      return;
     }
 
-  }
-);
+    empty.style.display = "none";
+    grid.style.display = "grid";
 
+    grid.innerHTML = this.references
+      .map(
+        (ref) => `
+      <div class="reference-card ${ref.image_urls?.split(",").length > 1 ? "has-multiple" : ""}" onclick="ReferencesModule.openModal('${Utils.escapeHtml(
+          ref.reference_id
+        )}')">
+        <div class="reference-card-image-container">
+          <img src="${Utils.escapeHtml(ref.image_urls?.split(",")[0] || "")}" class="reference-card-image" alt="${Utils.escapeHtml(
+            ref.title || ""
+          )}">
+          ${
+            ref.image_urls?.split(",").length > 1
+              ? `<div class="reference-card-multi-badge">📸 ${ref.image_urls.split(",").length}</div>`
+              : ""
+          }
+        </div>
 
-// ======================================================
-// 50. START WEBSITE
-// ======================================================
-//
-// HTML kamu memanggil app.js di bagian paling bawah
-// setelah seluruh elemen HTML dibuat.
-// Jadi tidak perlu memindahkan seluruh kode ke
-// DOMContentLoaded.
-//
-// Kita tetap menggunakan fungsi startup terpisah
-// agar urutannya jelas.
-// ======================================================
+        <div class="reference-card-overlay">
+          <h3 class="reference-card-title">${Utils.escapeHtml(ref.title || "")}</h3>
+          <p class="reference-card-description">${Utils.escapeHtml(ref.description || "")}</p>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  },
 
-async function startWebsite() {
+  openModal(refId) {
+    const ref = this.references.find((r) => String(r.reference_id) === String(refId));
+    if (!ref) return;
 
-  console.log(
-    "🚀 Nikiara.studio starting..."
+    this.currentViewId = refId;
+    this.currentImageIndex = 0;
+
+    const images = (ref.image_urls || "").split(",").filter(Boolean);
+
+    document.getElementById("references-modal-title").textContent = Utils.escapeHtml(ref.title || "");
+    document.getElementById("references-modal-description").textContent = Utils.escapeHtml(
+      ref.description || ""
+    );
+
+    this.updateModalImage(images);
+
+    const modal = document.getElementById("references-modal");
+    modal.style.display = "flex";
+
+    if (images.length > 1) {
+      document.getElementById("references-carousel-controls").style.display = "flex";
+      this.renderCarouselDots(images.length);
+    } else {
+      document.getElementById("references-carousel-controls").style.display = "none";
+    }
+  },
+
+  updateModalImage(images) {
+    const img = document.getElementById("references-modal-image");
+    const counter = document.getElementById("references-image-counter");
+
+    img.src = Utils.escapeHtml(images[this.currentImageIndex] || "");
+    counter.textContent = `${this.currentImageIndex + 1}/${images.length}`;
+  },
+
+  renderCarouselDots(count) {
+    const dotsContainer = document.getElementById("references-carousel-dots");
+    dotsContainer.innerHTML = [...Array(count)]
+      .map(
+        (_, i) => `
+      <div class="carousel-dot ${i === this.currentImageIndex ? "active" : ""}" onclick="ReferencesModule.goToImage(${i})"></div>
+    `
+      )
+      .join("");
+  },
+
+  nextImage() {
+    const ref = this.references.find((r) => String(r.reference_id) === String(this.currentViewId));
+    if (!ref) return;
+
+    const images = ref.image_urls.split(",").filter(Boolean);
+    this.currentImageIndex = (this.currentImageIndex + 1) % images.length;
+
+    this.updateModalImage(images);
+    this.renderCarouselDots(images.length);
+  },
+
+  prevImage() {
+    const ref = this.references.find((r) => String(r.reference_id) === String(this.currentViewId));
+    if (!ref) return;
+
+    const images = ref.image_urls.split(",").filter(Boolean);
+    this.currentImageIndex = (this.currentImageIndex - 1 + images.length) % images.length;
+
+    this.updateModalImage(images);
+    this.renderCarouselDots(images.length);
+  },
+
+  goToImage(index) {
+    this.currentImageIndex = index;
+    const ref = this.references.find((r) => String(r.reference_id) === String(this.currentViewId));
+    if (ref) {
+      const images = ref.image_urls.split(",").filter(Boolean);
+      this.updateModalImage(images);
+      this.renderCarouselDots(images.length);
+    }
+  },
+
+  closeModal() {
+    document.getElementById("references-modal").style.display = "none";
+  },
+};
+
+// =========================================================
+// CHECKOUT MODULE
+// =========================================================
+
+const CheckoutModule = {
+  async submitOrder(event) {
+    event.preventDefault();
+
+    if (CartModule.isEmpty()) {
+      Utils.showNotification("Keranjang masih kosong", "error");
+      return;
+    }
+
+    const form = event.target;
+    const formData = {
+      name: form.customerName.value.trim(),
+      whatsapp: form.customerWhatsapp.value.trim(),
+      address: form.customerAddress.value.trim(),
+      payment_method: form.paymentMethod.value,
+      notes: form.customerNotes.value.trim(),
+      items: CartModule.items,
+      total: CartModule.getTotal(),
+    };
+
+    // Validasi
+    if (!formData.name || !formData.whatsapp || !formData.address || !formData.payment_method) {
+      Utils.showNotification("Silakan isi semua field yang wajib", "error");
+      return;
+    }
+
+    if (!/^(\+62|62|0)[0-9]{9,12}$/.test(formData.whatsapp.replace(/[^0-9+]/g, ""))) {
+      Utils.showNotification("Nomor WhatsApp tidak valid", "error");
+      return;
+    }
+
+    try {
+      const response = await Utils.apiCall({
+        action: "createOrder",
+        ...formData,
+      });
+
+      if (response.success) {
+        Utils.showNotification("Pesanan berhasil dibuat! Hubungi kami via WhatsApp");
+
+        // Clear cart
+        CartModule.items = [];
+        CartModule.saveToStorage();
+        CartModule.render();
+
+        // Close modal
+        UIModule.closeCheckout();
+
+        // Reset form
+        form.reset();
+
+        // Close cart drawer
+        UIModule.closeCart();
+      } else {
+        Utils.showNotification(response.message || "Gagal membuat pesanan", "error");
+      }
+    } catch (error) {
+      console.error("❌ Checkout error:", error);
+      Utils.showNotification("Terjadi kesalahan. Coba lagi nanti", "error");
+    }
+  },
+};
+
+// =========================================================
+// UI MODULE
+// =========================================================
+
+const UIModule = {
+  // Cart Drawer
+  openCart() {
+    document.getElementById("cartOverlay").classList.add("active");
+    document.getElementById("cartDrawer").classList.add("active");
+  },
+
+  closeCart() {
+    document.getElementById("cartOverlay").classList.remove("active");
+    document.getElementById("cartDrawer").classList.remove("active");
+  },
+
+  // Checkout Modal
+  openCheckout() {
+    if (CartModule.isEmpty()) {
+      Utils.showNotification("Keranjang masih kosong", "error");
+      return;
+    }
+
+    document.getElementById("checkoutModal").style.display = "flex";
+    document.getElementById("checkoutTotal").textContent = Utils.formatRupiah(CartModule.getTotal());
+
+    this.closeCart();
+  },
+
+  closeCheckout() {
+    document.getElementById("checkoutModal").style.display = "none";
+  },
+
+  // References Modal
+  openReferences() {
+    if (ReferencesModule.references.length === 0) {
+      Utils.showNotification("Belum ada referensi", "error");
+      return;
+    }
+
+    ReferencesModule.openModal(ReferencesModule.references[0].reference_id);
+  },
+};
+
+// =========================================================
+// EVENT LISTENERS
+// =========================================================
+
+function setupEventListeners() {
+  // Cart
+  document.getElementById("openCartButton").addEventListener("click", () => UIModule.openCart());
+  document.getElementById("closeCartButton").addEventListener("click", () => UIModule.closeCart());
+  document.getElementById("cartOverlay").addEventListener("click", () => UIModule.closeCart());
+
+  // Checkout
+  document.getElementById("checkoutButton").addEventListener("click", () => UIModule.openCheckout());
+  document.getElementById("closeCheckoutButton").addEventListener("click", () => UIModule.closeCheckout());
+  document.getElementById("checkoutForm").addEventListener("submit", (e) => CheckoutModule.submitOrder(e));
+
+  // References
+  document.getElementById("openReferenceButton").addEventListener("click", () => UIModule.openReferences());
+  document.getElementById("modalCloseBtn").addEventListener("click", () => ReferencesModule.closeModal());
+  document.getElementById("referencePrevBtn").addEventListener("click", () => ReferencesModule.prevImage());
+  document.getElementById("referenceNextBtn").addEventListener("click", () => ReferencesModule.nextImage());
+  document.getElementById("references-modal-overlay").addEventListener("click", () => ReferencesModule.closeModal());
+
+  // Search
+  const searchInput = document.getElementById("searchInput");
+  searchInput.addEventListener(
+    "input",
+    Utils.debounce((e) => ProductsModule.filter(e.target.value), 300)
   );
 
+  // Pagination
+  document.getElementById("prevPageBtn").addEventListener("click", () => ProductsModule.prevPage());
+  document.getElementById("nextPageBtn").addEventListener("click", () => ProductsModule.nextPage());
 
-  // Produk
-  await loadProducts();
-
-
-  // Reference lama
-  await loadReferences();
-
-
-  // Reference Instagram Feed BARU
-  await loadReferencesInstaFeed();
-
-
-  console.log(
-    "✅ Nikiara.studio loaded."
-  );
-
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      UIModule.closeCart();
+      UIModule.closeCheckout();
+      ReferencesModule.closeModal();
+    }
+  });
 }
 
+// =========================================================
+// INIT
+// =========================================================
 
-// ======================================================
-// START
-// ======================================================
+async function initialize() {
+  console.log("🚀 Nikiara.studio initializing...");
 
-startWebsite();
+  CartModule.init();
+  await ProductsModule.load();
+  await ReferencesModule.load();
+  setupEventListeners();
+
+  console.log("✅ Nikiara.studio loaded!");
+}
+
+// Start when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initialize);
+} else {
+  initialize();
+}

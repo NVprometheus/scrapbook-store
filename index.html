@@ -2,705 +2,260 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="description"
-    content="Toko online scrapbook, journal, sticker, paper dan dekorasi."
-  >
-
- <title>Nikiara.studio</title>
-
-  <!-- File desain website -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Toko online scrapbook, journal, sticker, paper dan dekorasi.">
+  <title>Nikiara.studio</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <!-- =========================
+  <!-- ======================================
        HEADER
-  ========================== -->
+  ====================================== -->
   <header class="site-header">
-
     <div class="container header-content">
-
-<a href="#" class="brand">
-
-  <img
-    src="logo-nikiara.jpeg"
-    alt="Nikiara Studio"
-    class="brand-logo"
-  >
-
-  <div>
-    <h1 id="storeName">Nikiara.studio</h1>
-
-    <small>
-      Little things, beautiful memories.
-    </small>
-  </div>
-
-</a>
-
+      <a href="#" class="brand">
+        <img src="logo-nikiara.jpeg" alt="Nikiara Studio" class="brand-logo">
+        <div>
+          <h1 id="storeName">Nikiara.studio</h1>
+          <small>Little things, beautiful memories.</small>
+        </div>
+      </a>
 
       <div class="header-actions">
-
-        <button
-          type="button"
-          class="cart-button"
-          id="openCartButton"
-        >
+        <button type="button" class="cart-button" id="openCartButton" aria-label="Buka keranjang">
           🛒
           <span>Keranjang</span>
-
-          <span
-            class="cart-count"
-            id="cartCount"
-          >
-            0
-          </span>
+          <span class="cart-count" id="cartCount">0</span>
         </button>
-
       </div>
-
     </div>
-
   </header>
 
-
-
-  <!-- =========================
-       HERO / BANNER
-  ========================== -->
+  <!-- ======================================
+       HERO SECTION
+  ====================================== -->
   <main>
-
     <section class="hero">
-
       <div class="container hero-content">
-
         <div class="hero-text">
+          <span class="hero-label">✨ Scrapbook Collection</span>
+          <h2>Buat setiap kenangan menjadi lebih indah.</h2>
+          <p>Temukan paper, sticker, journal, printable dan berbagai dekorasi pilihan untuk scrapbook favoritmu.</p>
 
-          <span class="hero-label">
-            ✨ Scrapbook Collection
-          </span>
-
-          <h2>
-            Buat setiap kenangan
-            menjadi lebih indah.
-          </h2>
-
-          <p>
-            Temukan paper, sticker, journal,
-            printable dan berbagai dekorasi
-            pilihan untuk scrapbook favoritmu.
-          </p>
-
-         <div class="hero-actions">
-
-  <a
-    href="#products"
-    class="primary-button"
-  >
-    Lihat Koleksi
-  </a>
-
-
-  <button
-    type="button"
-    class="hero-reference-button"
-    id="openReferenceButton"
-  >
-    ✨ Referensi
-  </button>
-
-</div>
-
+          <div class="hero-actions">
+            <a href="#products" class="primary-button">Lihat Koleksi</a>
+            <button type="button" class="hero-reference-button" id="openReferenceButton">✨ Referensi</button>
+          </div>
         </div>
 
-
-        <div
-          class="hero-decoration"
-          aria-hidden="true"
-        >
+        <div class="hero-decoration" aria-hidden="true">
           🌸 📖 ✨
         </div>
-
       </div>
-
     </section>
 
-
-
-    <!-- =========================
-         SEARCH
-    ========================== -->
+    <!-- ======================================
+         SEARCH & CATEGORY FILTERS
+    ====================================== -->
     <section class="shop-tools">
-
       <div class="container">
-
         <div class="search-box">
-
           <span>🔎</span>
-
-          <input
-            type="search"
-            id="searchInput"
-            placeholder="Cari paper, sticker, journal..."
-            autocomplete="off"
-          >
-
+          <input type="search" id="searchInput" placeholder="Cari paper, sticker, journal..." autocomplete="off">
         </div>
 
-
-        <!-- CATEGORY -->
-        <div
-          class="category-list"
-          id="categoryList"
-        >
-
-          <button
-            type="button"
-            class="category-button active"
-            data-category="all"
-          >
-            Semua
-          </button>
-
-          <button
-            type="button"
-            class="category-button"
-            data-category="Paper"
-          >
-            Paper
-          </button>
-
-          <button
-            type="button"
-            class="category-button"
-            data-category="Sticker"
-          >
-            Sticker
-          </button>
-
-          <button
-            type="button"
-            class="category-button"
-            data-category="Journal"
-          >
-            Journal
-          </button>
-
-          <button
-            type="button"
-            class="category-button"
-            data-category="Decoration"
-          >
-            Decoration
-          </button>
-
-          <button
-            type="button"
-            class="category-button"
-            data-category="Printable"
-          >
-            Printable
-          </button>
-
+        <div class="category-list" id="categoryList">
+          <button type="button" class="category-button active" data-category="all">Semua</button>
         </div>
-
       </div>
-
     </section>
 
-
-
-    <!-- =========================
-         PRODUCTS
-    ========================== -->
-    <section
-      class="products-section"
-      id="products"
-    >
-
+    <!-- ======================================
+         PRODUCTS SECTION
+    ====================================== -->
+    <section class="products-section" id="products">
       <div class="container">
-
         <div class="section-heading">
-
           <div>
-            <span class="section-label">
-              Our Collection
-            </span>
-
-            <h2>
-              Pilihan Untuk Scrapbookmu
-            </h2>
+            <span class="section-label">Our Collection</span>
+            <h2>Pilihan Untuk Scrapbookmu</h2>
           </div>
-
-
-          <p id="productCount">
-            Memuat produk...
-          </p>
-
+          <p id="productCount">Memuat produk...</p>
         </div>
 
-
-
-        <!--
-          NANTI PRODUK DARI GOOGLE SHEETS
-          AKAN DIMASUKKAN KE SINI
-          OLEH app.js
-        -->
-
-        <div
-          class="product-grid"
-          id="productGrid"
-        >
-
-          <div class="loading-message">
-            Memuat koleksi...
-          </div>
-
+        <div class="product-grid" id="productGrid">
+          <div class="loading-message">Memuat koleksi... ✨</div>
         </div>
 
+        <!-- PAGINATION -->
+        <div class="pagination-controls" id="paginationControls">
+          <button type="button" class="pagination-btn" id="prevPageBtn" disabled>← Sebelumnya</button>
+          <div class="pagination-info" id="paginationInfo"></div>
+          <button type="button" class="pagination-btn" id="nextPageBtn">Berikutnya →</button>
+        </div>
       </div>
-
     </section>
 
+    <!-- ======================================
+         REFERENCES SECTION (Instagram Feed Grid)
+    ====================================== -->
+    <section id="references-section" class="references-section" style="display: none;">
+      <div class="container">
+        <div class="references-header">
+          <h2>✨ Inspirasi Scrapbook</h2>
+          <p>Koleksi referensi desain yang kami sukai</p>
+        </div>
+
+        <div id="references-grid" class="references-grid">
+          <!-- Items akan di-render oleh JavaScript -->
+        </div>
+
+        <div id="references-loading" class="references-loading" style="display: none;">
+          <p>Memuat inspirasi...</p>
+        </div>
+
+        <div id="references-empty" class="references-empty" style="display: none;">
+          <p>Belum ada referensi yang tersedia.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- ======================================
+       CART DRAWER
+  ====================================== -->
+  <div class="cart-overlay" id="cartOverlay"></div>
 
-
-  <!-- =========================
-       CART
-  ========================== -->
-  <div
-    class="cart-overlay"
-    id="cartOverlay"
-  ></div>
-
-
-  <aside
-    class="cart-drawer"
-    id="cartDrawer"
-  >
-
+  <aside class="cart-drawer" id="cartDrawer">
     <div class="cart-header">
-
       <div>
-        <span class="section-label">
-          Your Cart
-        </span>
-
+        <span class="section-label">Your Cart</span>
         <h2>Keranjang</h2>
       </div>
-
-
-      <button
-        type="button"
-        class="close-button"
-        id="closeCartButton"
-        aria-label="Tutup keranjang"
-      >
-        ✕
-      </button>
-
+      <button type="button" class="close-button" id="closeCartButton" aria-label="Tutup keranjang">✕</button>
     </div>
 
-
-    <div
-      class="cart-items"
-      id="cartItems"
-    >
-
+    <div class="cart-items" id="cartItems">
       <div class="empty-cart">
         <span>🛒</span>
-
-        <p>
-          Keranjangmu masih kosong.
-        </p>
+        <p>Keranjangmu masih kosong.</p>
       </div>
-
     </div>
-
 
     <div class="cart-footer">
-
       <div class="cart-total">
-
         <span>Total</span>
-
-        <strong id="cartTotal">
-          Rp0
-        </strong>
-
+        <strong id="cartTotal">Rp0</strong>
       </div>
-
-
-      <button
-        type="button"
-        class="checkout-button"
-        id="checkoutButton"
-      >
-        Lanjut Checkout
-      </button>
-
+      <button type="button" class="checkout-button" id="checkoutButton">Lanjut Checkout</button>
     </div>
-
   </aside>
 
+  <!-- ======================================
+       REFERENCES MODAL (Carousel + Grid)
+  ====================================== -->
+  <div id="references-modal" class="references-modal" style="display: none;">
+    <div class="references-modal-overlay"></div>
 
-<!-- =========================
-     REFERENCE CAROUSEL
-========================= -->
+    <div class="references-modal-content">
+      <button class="references-modal-close" id="modalCloseBtn" aria-label="Tutup referensi">×</button>
 
-<!-- ===== REFERENCES INSTAGRAM FEED SECTION ===== -->
-<section id="references-section" class="references-insta-feed" style="display: none;">
-  <div class="references-header">
-    <h2>✨ Inspirasi Scrapbook</h2>
-    <p>Koleksi referensi desain yang kami sukai</p>
-  </div>
+      <div class="references-carousel-wrapper">
+        <img id="references-modal-image" class="references-modal-image" src="" alt="Reference">
 
-  <!-- Instagram Grid -->
-  <div id="references-grid" class="references-grid">
-    <!-- Item akan di-render oleh JavaScript -->
-  </div>
-
-  <!-- Loading State -->
-  <div id="references-loading" class="references-loading" style="display: none;">
-    <p>Memuat inspirasi...</p>
-  </div>
-
-  <!-- Empty State -->
-  <div id="references-empty" class="references-empty" style="display: none;">
-    <p>Belum ada referensi yang tersedia.</p>
-  </div>
-</section>
-
-<!-- ===== REFERENCES MODAL — Full Screen Carousel ===== -->
-<div id="references-modal" class="references-modal" style="display: none;">
-  <div class="references-modal-overlay"></div>
-
-  <div class="references-modal-content">
-    <!-- Close Button -->
-    <button class="references-modal-close" onclick="closeReferencesModal()">&times;</button>
-
-    <!-- Carousel Container (jika multi-image) -->
-    <div class="references-carousel-wrapper">
-      <!-- Image -->
-      <img id="references-modal-image" class="references-modal-image" src="" alt="Reference" />
-
-      <!-- Carousel Controls (muncul jika lebih dari 1 image) -->
-      <div id="references-carousel-controls" class="references-carousel-controls" style="display: none;">
-        <button class="carousel-arrow carousel-prev" onclick="prevReferenceImage()">‹</button>
-        <button class="carousel-arrow carousel-next" onclick="nextReferenceImage()">›</button>
-        <div class="carousel-dots" id="references-carousel-dots"></div>
+        <div id="references-carousel-controls" class="references-carousel-controls" style="display: none;">
+          <button class="carousel-arrow carousel-prev" id="referencePrevBtn" aria-label="Sebelumnya">‹</button>
+          <div class="carousel-dots" id="references-carousel-dots"></div>
+          <button class="carousel-arrow carousel-next" id="referenceNextBtn" aria-label="Berikutnya">›</button>
+        </div>
       </div>
-    </div>
 
-    <!-- Modal Info -->
-    <div class="references-modal-info">
-      <h3 id="references-modal-title">Title</h3>
-      <p id="references-modal-description">Description</p>
-      <div class="references-modal-counter">
-        <span id="references-image-counter">1/1</span>
+      <div class="references-modal-info">
+        <h3 id="references-modal-title">Title</h3>
+        <p id="references-modal-description">Description</p>
+        <div class="references-modal-counter">
+          <span id="references-image-counter">1/1</span>
+        </div>
       </div>
     </div>
   </div>
-</div>
-    class="modal-card reference-carousel-card"
-  >
 
-    <div class="modal-header">
-
-      <div>
-
-        <span class="section-label">
-          Inspiration
-        </span>
-
-        <h2>
-          Referensi Scrapbook
-        </h2>
-
-      </div>
-
-
-      <button
-        type="button"
-        class="close-button"
-        id="closeReferenceButton"
-        aria-label="Tutup referensi"
-      >
-        ✕
-      </button>
-
-    </div>
-
-
-    <p class="reference-description">
-      Temukan inspirasi untuk scrapbook
-      dan journal versimu sendiri ✨
-    </p>
-
-
-    <div
-      class="reference-loading"
-      id="referenceLoading"
-    >
-      Memuat referensi...
-    </div>
-
-
-    <div
-      class="reference-carousel"
-      id="referenceCarousel"
-    >
-
-      <button
-        type="button"
-        class="carousel-arrow carousel-prev"
-        id="referencePrev"
-        aria-label="Referensi sebelumnya"
-      >
-        ‹
-      </button>
-
-
-      <div
-        class="reference-image-wrapper"
-      >
-
-        <img
-          id="referenceImage"
-          class="reference-image"
-          src=""
-          alt="Referensi scrapbook"
-        >
-
-      </div>
-
-
-      <button
-        type="button"
-        class="carousel-arrow carousel-next"
-        id="referenceNext"
-        aria-label="Referensi berikutnya"
-      >
-        ›
-      </button>
-
-    </div>
-
-
-    <h3
-      class="reference-title"
-      id="referenceTitle"
-    >
-    </h3>
-
-
-    <div
-      class="reference-dots"
-      id="referenceDots"
-    >
-    </div>
-
-
-    <div
-      class="reference-counter"
-      id="referenceCounter"
-    >
-    </div>
-
-  </div>
-
-</div>
-  <!-- =========================
+  <!-- ======================================
        CHECKOUT MODAL
-  ========================== -->
-  <div
-    class="modal"
-    id="checkoutModal"
-  >
+  ====================================== -->
+  <div class="modal" id="checkoutModal" style="display: none;">
+    <div class="modal-overlay"></div>
 
     <div class="modal-card">
-
       <div class="modal-header">
-
         <div>
-          <span class="section-label">
-            Checkout
-          </span>
-
+          <span class="section-label">Checkout</span>
           <h2>Data Pemesan</h2>
         </div>
-
-
-        <button
-          type="button"
-          class="close-button"
-          id="closeCheckoutButton"
-        >
-          ✕
-        </button>
-
+        <button type="button" class="close-button" id="closeCheckoutButton" aria-label="Tutup">✕</button>
       </div>
 
-
-
-      <form id="checkoutForm">
-
+      <form id="checkoutForm" class="checkout-form">
         <div class="form-group">
-
-          <label for="customerName">
-            Nama
-          </label>
-
-          <input
-            type="text"
-            id="customerName"
-            required
-            placeholder="Nama lengkap"
-          >
-
+          <label for="customerName">Nama</label>
+          <input type="text" id="customerName" required placeholder="Nama lengkap">
         </div>
 
-
         <div class="form-group">
-
-          <label for="customerWhatsapp">
-            Nomor WhatsApp
-          </label>
-
-          <input
-            type="tel"
-            id="customerWhatsapp"
-            required
-            placeholder="08xxxxxxxxxx"
-          >
-
+          <label for="customerWhatsapp">Nomor WhatsApp</label>
+          <input type="tel" id="customerWhatsapp" required placeholder="08xxxxxxxxxx">
         </div>
 
-
         <div class="form-group">
-
-          <label for="customerAddress">
-            Alamat
-          </label>
-
-          <textarea
-            id="customerAddress"
-            required
-            rows="4"
-            placeholder="Alamat lengkap pengiriman"
-          ></textarea>
-
+          <label for="customerAddress">Alamat</label>
+          <textarea id="customerAddress" required rows="4" placeholder="Alamat lengkap pengiriman"></textarea>
         </div>
 
-
         <div class="form-group">
-
-          <label for="paymentMethod">
-            Metode Pembayaran
-          </label>
-
-          <select
-            id="paymentMethod"
-            required
-          >
-
-            <option value="">
-              Pilih metode pembayaran
-            </option>
-
-            <option value="Transfer Bank">
-              Transfer Bank
-            </option>
-
-            <option value="QRIS">
-              QRIS
-            </option>
-
+          <label for="paymentMethod">Metode Pembayaran</label>
+          <select id="paymentMethod" required>
+            <option value="">Pilih metode pembayaran</option>
+            <option value="Transfer Bank">Transfer Bank</option>
+            <option value="QRIS">QRIS</option>
           </select>
-
         </div>
-
 
         <div class="form-group">
-
-          <label for="customerNotes">
-            Catatan
-          </label>
-
-          <textarea
-            id="customerNotes"
-            rows="3"
-            placeholder="Opsional"
-          ></textarea>
-
+          <label for="customerNotes">Catatan</label>
+          <textarea id="customerNotes" rows="3" placeholder="Opsional"></textarea>
         </div>
-
 
         <div class="checkout-summary">
-
           <span>Total Pesanan</span>
-
-          <strong id="checkoutTotal">
-            Rp0
-          </strong>
-
+          <strong id="checkoutTotal">Rp0</strong>
         </div>
 
-
-        <button
-          type="submit"
-          class="submit-order-button"
-        >
-          Buat Pesanan
-        </button>
-
+        <button type="submit" class="submit-order-button">Buat Pesanan</button>
       </form>
-
     </div>
-
   </div>
 
+  <!-- ======================================
+       NOTIFICATION TOAST
+  ====================================== -->
+  <div id="notificationToast" class="notification-toast"></div>
 
-
-  <!-- =========================
+  <!-- ======================================
        FOOTER
-  ========================== -->
+  ====================================== -->
   <footer>
-
     <div class="container footer-content">
-
       <div>
-    <strong>
-  Nikiara.studio
-</strong>
-
-        <p>
-          Create memories. Keep them forever.
-        </p>
+        <strong>Nikiara.studio</strong>
+        <p>Create memories. Keep them forever.</p>
       </div>
-
-
-      <p>
-     © 2026 Nikiara.studio i love you sayang
-      </p>
-
+      <p>© 2026 Nikiara.studio • i love you sayang</p>
     </div>
-
   </footer>
 
-
-
-  <!-- File fungsi website -->
+  <!-- Scripts -->
   <script src="app.js"></script>
-
 </body>
 </html>
