@@ -313,31 +313,57 @@ const ReferencesModule = {
   closeModal() { document.getElementById("references-modal").style.display = "none"; },
 };
 
+// =========================================================
+// CHECKOUT MODULE
+// =========================================================
+
 const CheckoutModule = {
   async submitOrder(event) {
     event.preventDefault();
     if (CartModule.isEmpty()) return Utils.showNotification("Keranjang masih kosong", "error");
     const form = event.target;
+    
+    // FIX: Sesuaikan nama field dengan yang diminta Code.gs
     const formData = {
-      name: form.customerName.value.trim(),
+      action: "createOrder",
+      customer_name: form.customerName.value.trim(), 
       whatsapp: form.customerWhatsapp.value.trim(),
       address: form.customerAddress.value.trim(),
       payment_method: form.paymentMethod.value,
       notes: form.customerNotes.value.trim(),
-      items: CartModule.items,
       total: CartModule.getTotal(),
+      // FIX: Mapping ulang isi keranjang agar cocok dengan Code.gs
+      items: CartModule.items.map(item => ({
+        product_id: item.id, // Diubah dari id menjadi product_id
+        quantity: item.qty   // Diubah dari qty menjadi quantity
+      }))
     };
 
     if (!/^(\+62|62|0)[0-9]{9,12}$/.test(formData.whatsapp.replace(/[^0-9+]/g, ""))) return Utils.showNotification("Nomor WhatsApp tidak valid", "error");
 
+    // UX: Tampilkan pesan loading
+    const submitBtn = form.querySelector('.submit-order-button');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Memproses...";
+    submitBtn.disabled = true;
+
     try {
-      const response = await Utils.apiCall({ action: "createOrder", ...formData });
+      const response = await Utils.apiCall(formData); // API Call sekarang mengirim payload POST
+      
       if (response.success) {
         Utils.showNotification("Pesanan berhasil dibuat! Hubungi kami via WhatsApp");
         CartModule.items = []; CartModule.saveToStorage(); CartModule.render();
         UIModule.closeCheckout(); UIModule.closeCart(); form.reset();
-      } else { Utils.showNotification(response.message || "Gagal membuat pesanan", "error"); }
-    } catch (error) { Utils.showNotification("Terjadi kesalahan. Coba lagi nanti", "error"); }
+      } else { 
+        Utils.showNotification(response.message || "Gagal membuat pesanan", "error"); 
+      }
+    } catch (error) { 
+      Utils.showNotification("Terjadi kesalahan. Coba lagi nanti", "error"); 
+    } finally {
+      // Kembalikan tombol ke kondisi semula
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
   },
 };
 
