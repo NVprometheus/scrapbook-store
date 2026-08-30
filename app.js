@@ -56,16 +56,29 @@ const ProductsModule = {
     try {
       const data = await Utils.apiCall({ action: "products" });
       if (!data.success) throw new Error(data.message || "Failed to load products");
+      
+      // FIX: Menyelaraskan nama properti dengan kolom Google Sheets (product_id, product_name, image_url)
       this.products = (data.products || []).map((p) => ({
-        ...p, price: Number(p.price) || 0, stock: Number(p.stock) || 0, active: ["TRUE", "true", 1, "1", true].includes(p.active),
+        id: p.product_id || p.id,
+        name: p.product_name || p.name,
+        price: Number(p.price) || 0,
+        stock: Number(p.stock) || 0,
+        category: p.category,
+        image: p.image_url || p.image,
+        description: p.description,
+        active: ["TRUE", "true", 1, "1", true].includes(p.active),
       }));
-      this.render();
+
       this.renderCategories();
+      // FIX: Jalankan filter di awal agar produk langsung muncul tanpa harus klik "Semua"
+      this.filter(); 
     } catch (error) {
       document.getElementById("productGrid").innerHTML = `<div class="loading-message">⚠️ Produk belum dapat dimuat. Coba refresh halaman.</div>`;
     }
   },
+  
   getActiveProducts() { return this.products.filter((p) => p.active); },
+  
   filter(searchTerm = "") {
     const active = this.getActiveProducts();
     this.filteredProducts = active.filter((p) => {
@@ -77,11 +90,14 @@ const ProductsModule = {
     this.currentPage = 1;
     this.render();
   },
+  
   getPaginatedProducts() {
     const start = (this.currentPage - 1) * CONFIG.PRODUCTS_PER_PAGE;
     return this.filteredProducts.slice(start, start + CONFIG.PRODUCTS_PER_PAGE);
   },
+  
   getTotalPages() { return Math.ceil(this.filteredProducts.length / CONFIG.PRODUCTS_PER_PAGE); },
+  
   render() {
     const grid = document.getElementById("productGrid");
     const count = document.getElementById("productCount");
@@ -113,6 +129,7 @@ const ProductsModule = {
     `).join("");
     this.updatePaginationControls();
   },
+  
   updatePaginationControls() {
     const totalPages = this.getTotalPages();
     const controls = document.getElementById("paginationControls");
@@ -122,6 +139,7 @@ const ProductsModule = {
     document.getElementById("prevPageBtn").disabled = this.currentPage === 1;
     document.getElementById("nextPageBtn").disabled = this.currentPage === totalPages;
   },
+  
   renderCategories() {
     const active = this.getActiveProducts();
     const categories = [...new Set(active.map((p) => p.category).filter(Boolean))];
@@ -138,14 +156,15 @@ const ProductsModule = {
       }
     });
   },
+  
   nextPage() {
     if (this.currentPage < this.getTotalPages()) { this.currentPage++; this.render(); document.getElementById("productGrid").scrollIntoView({ behavior: "smooth" }); }
   },
+  
   prevPage() {
     if (this.currentPage > 1) { this.currentPage--; this.render(); document.getElementById("productGrid").scrollIntoView({ behavior: "smooth" }); }
   },
 };
-
 const CartModule = {
   items: [],
   STORAGE_KEY: "nikiara_cart",
