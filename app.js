@@ -17,7 +17,19 @@ const Utils = {
     const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
     return String(text || "").replace(/[&<>"']/g, (c) => map[c]);
   },
+  // API Call dengan cache & support POST untuk checkout
   async apiCall(params) {
+    // Jika action adalah createOrder, gunakan method POST
+    if (params.action === "createOrder") {
+      const response = await fetch(CONFIG.API_URL, {
+        method: "POST",
+        body: JSON.stringify(params),
+      });
+      if (!response.ok) throw new Error("API POST failed");
+      return await response.json();
+    }
+
+    // Untuk metode GET (Products & References), gunakan cache
     const cacheKey = `cache_${JSON.stringify(params)}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
@@ -26,7 +38,7 @@ const Utils = {
     }
     const query = new URLSearchParams(params).toString();
     const response = await fetch(`${CONFIG.API_URL}?${query}&t=${Date.now()}`);
-    if (!response.ok) throw new Error("API call failed");
+    if (!response.ok) throw new Error("API GET failed");
     const data = await response.json();
     sessionStorage.setItem(cacheKey, JSON.stringify({ data, time: Date.now() }));
     return data;
