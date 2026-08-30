@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Panel - Nikiara.studio</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- ======================================
+       LOGIN SCREEN
+  ====================================== -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="brand-logo-placeholder">✨</div>
+        <h2>Admin Panel</h2>
+        <p>Nikiara.studio</p>
+      </div>
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" required placeholder="Masukkan password admin">
+        </div>
+        <button type="submit" class="primary-button w-100">Login</button>
+        <p id="loginError" class="error-text" style="display: none;">Password salah!</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================
+       MAIN DASHBOARD
+  ====================================== -->
+  <div id="adminDashboard" class="admin-layout" style="display: none;">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Nikiara Admin</h2>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <button class="nav-item active" data-target="panel-dashboard">📊 Dashboard</button>
+        <button class="nav-item" data-target="panel-products">📦 Products</button>
+        <button class="nav-item" data-target="panel-categories">🏷️ Categories</button>
+        <button class="nav-item" data-target="panel-orders">🛒 Orders</button>
+        <button class="nav-item" data-target="panel-portfolio">✨ Portfolio (Ref)</button>
+        <button class="nav-item" data-target="panel-settings">⚙️ Settings</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="nav-item text-danger">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <header class="top-header">
+        <h2 id="currentPanelTitle">Dashboard</h2>
+        <div class="header-actions">
+          <span class="admin-badge">Admin</span>
+        </div>
+      </header>
+
+      <div class="content-area">
+        
+        <!-- PANEL: DASHBOARD -->
+        <div id="panel-dashboard" class="panel active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Total Orders</h3>
+              <p class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Active Products</h3>
+              <p class="stat-value">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Total Revenue</h3>
+              <p class="stat-value">Rp0</p>
+            </div>
+          </div>
+          <div class="placeholder-box">
+            <p>Welcome to Nikiara Control Panel. Data will be synced from Google Sheets.</p>
+          </div>
+        </div>
+
+        <!-- PANEL: PRODUCTS (Placeholder) -->
+        <div id="panel-products" class="panel" style="display: none;">
+          <div class="panel-toolbar">
+            <button class="primary-button">+ Add Product</button>
+          </div>
+          <div class="placeholder-box">
+            <p>Product management table will appear here.</p>
+          </div>
+        </div>
+
+        <!-- PANEL: ORDERS (Placeholder) -->
+        <div id="panel-orders" class="panel" style="display: none;">
+          <div class="placeholder-box">
+            <p>Order management table will appear here.</p>
+          </div>
+        </div>
+
+        <!-- Other panels will be built here iteratively -->
+        
+      </div>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
+
