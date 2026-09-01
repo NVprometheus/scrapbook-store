@@ -1,4 +1,9 @@
+// =========================================================
+// NIKIARA ADMIN PANEL
+// =========================================================
+
 const CONFIG = {
+  // Samakan dengan API URL tokomu
   API_URL: "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec",
   DUMMY_PASSWORD: "admin",
   
