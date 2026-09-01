@@ -51,3 +51,13 @@ button { cursor: pointer; }
 .stat-card h3 { font-size: 14px; color: #888; font-weight: 500; margin-bottom: 10px; }
 .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #333; }
 .placeholder-box { background: white; border: 1px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; color: #888; }
+/* ADMIN PORTFOLIO GRID */
+.admin-ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.admin-ref-card { background: white; border-radius: 12px; border: 1px solid #eaeaea; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.admin-ref-img { width: 100%; aspect-ratio: 1; object-fit: cover; background: #eee; }
+.admin-ref-info { padding: 15px; }
+.admin-ref-title { font-weight: bold; margin-bottom: 5px; color: #55423d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-ref-desc { font-size: 12px; color: #888; margin-bottom: 15px; height: 35px; overflow: hidden; }
+.admin-ref-actions { display: flex; gap: 8px; border-top: 1px solid #eaeaea; padding-top: 12px; }
+.btn-edit { flex: 1; background: #5f7161; color: white; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+.btn-delete { flex: 1; background: #d9534f; color: white; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
