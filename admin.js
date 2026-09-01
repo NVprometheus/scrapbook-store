@@ -1,14 +1,12 @@
-// =========================================================
-// NIKIARA ADMIN PANEL
-// =========================================================
-
 const CONFIG = {
+  // SAMAKAN DENGAN URL API TOKO UTAMAMU
   API_URL: "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec",
   DUMMY_PASSWORD: "admin"
 };
 
 const AdminApp = {
   products: [],
+  orders: [],
 
   init() {
     this.checkAuth();
@@ -18,36 +16,27 @@ const AdminApp = {
   checkAuth() {
     if (sessionStorage.getItem("nikiara_admin_logged") === "true") {
       this.showDashboard();
-      this.loadData(); // Tarik data otomatis jika sesi masih ada
+      this.loadData();
     } else {
-      this.showLogin();
+      document.getElementById("loginScreen").style.display = "flex";
+      document.getElementById("adminDashboard").style.display = "none";
     }
   },
 
   handleLogin(e) {
     e.preventDefault();
-    const passInput = document.getElementById("adminPassword").value;
-    const errorText = document.getElementById("loginError");
-
-    if (passInput === CONFIG.DUMMY_PASSWORD) {
+    if (document.getElementById("adminPassword").value === CONFIG.DUMMY_PASSWORD) {
       sessionStorage.setItem("nikiara_admin_logged", "true");
-      errorText.style.display = "none";
-      document.getElementById("loginForm").reset();
-      this.showDashboard();
-      this.loadData(); // Tarik data setelah berhasil login
+      document.getElementById("loginError").style.display = "none";
+      this.checkAuth();
     } else {
-      errorText.style.display = "block";
+      document.getElementById("loginError").style.display = "block";
     }
   },
 
   logout() {
     sessionStorage.removeItem("nikiara_admin_logged");
-    this.showLogin();
-  },
-
-  showLogin() {
-    document.getElementById("loginScreen").style.display = "flex";
-    document.getElementById("adminDashboard").style.display = "none";
+    location.reload();
   },
 
   showDashboard() {
@@ -56,110 +45,166 @@ const AdminApp = {
   },
 
   switchPanel(targetId, title) {
-    document.querySelectorAll('.panel').forEach(panel => panel.style.display = 'none');
+    document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
     document.getElementById(targetId).style.display = 'block';
     document.getElementById("currentPanelTitle").textContent = title;
   },
 
   setupEventListeners() {
-    document.getElementById("loginForm").addEventListener("submit", (e) => this.handleLogin(e));
+    document.getElementById("loginForm").addEventListener("submit", e => this.handleLogin(e));
     document.getElementById("logoutBtn").addEventListener("click", () => this.logout());
+    document.getElementById("productForm").addEventListener("submit", e => this.handleProductSubmit(e));
 
-    const navItems = document.querySelectorAll('#sidebarNav .nav-item');
+    const navItems = document.querySelectorAll('#sidebarNav .nav-item:not(#logoutBtn)');
     navItems.forEach(item => {
-      if (item.id === 'logoutBtn') return; // Skip logout button
-      item.addEventListener('click', (e) => {
+      item.addEventListener('click', e => {
         navItems.forEach(nav => nav.classList.remove('active'));
-        const clickedItem = e.currentTarget;
-        clickedItem.classList.add('active');
-        
-        const targetId = clickedItem.getAttribute('data-target');
-        this.switchPanel(targetId, clickedItem.textContent.substring(2).trim());
+        e.currentTarget.classList.add('active');
+        this.switchPanel(e.currentTarget.getAttribute('data-target'), e.currentTarget.textContent.substring(2).trim());
       });
     });
   },
 
-  // =========================================================
-  // INTEGRASI DATA BACKEND
-  // =========================================================
+  formatRupiah(num) {
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(num || 0);
+  },
 
+  // ==========================================
+  // FETCH DATA
+  // ==========================================
   async loadData() {
     try {
-      document.querySelector('#panel-products .placeholder-box').innerHTML = "<p>⏳ Menarik data produk dari Google Sheets...</p>";
-      
-      const response = await fetch(`${CONFIG.API_URL}?action=products`);
-      const data = await response.json();
+      const [prodRes, ordRes] = await Promise.all([
+        fetch(`${CONFIG.API_URL}?action=products`).then(r => r.json()),
+        fetch(`${CONFIG.API_URL}?action=orders`).then(r => r.json())
+      ]);
 
-      if (data.success) {
-        this.products = data.products || [];
-        this.renderProducts();
-        
-        // Update statistik di Dashboard
-        const activeCount = this.products.filter(p => p.active).length;
-        document.querySelectorAll('.stat-value')[1].textContent = activeCount;
-      } else {
-        throw new Error("Gagal mengambil data produk");
-      }
-    } catch (error) {
-      console.error(error);
-      document.querySelector('#panel-products .placeholder-box').innerHTML = "<p class='text-danger'>❌ Gagal memuat data. Periksa koneksi atau URL API.</p>";
+      if (prodRes.success) this.products = prodRes.products || [];
+      if (ordRes.success) this.orders = ordRes.orders || [];
+
+      this.renderDashboard();
+      this.renderProducts();
+      this.renderOrders();
+    } catch (err) {
+      console.error("Gagal load data", err);
     }
   },
 
-  formatRupiah(num) {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num || 0);
+  renderDashboard() {
+    const activeProducts = this.products.filter(p => p.active).length;
+    const totalRevenue = this.orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    const stats = document.querySelectorAll('.stat-value');
+    if (stats.length >= 3) {
+      stats[0].textContent = this.orders.length;
+      stats[1].textContent = activeProducts;
+      stats[2].textContent = this.formatRupiah(totalRevenue);
+    }
   },
 
+  // ==========================================
+  // PRODUCTS & MODAL
+  // ==========================================
   renderProducts() {
-    const container = document.querySelector('#panel-products .placeholder-box');
+    const box = document.querySelector('#panel-products .placeholder-box');
+    if (!this.products.length) { box.innerHTML = "<p>Belum ada produk.</p>"; return; }
     
-    if (this.products.length === 0) {
-      container.innerHTML = "<p>Belum ada produk di tokomu.</p>";
-      return;
-    }
-
-    let html = `
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead>
-          <tr style="border-bottom: 2px solid #eaeaea; color: #888;">
-            <th style="padding: 12px 8px;">ID</th>
-            <th style="padding: 12px 8px;">Nama Produk</th>
-            <th style="padding: 12px 8px;">Kategori</th>
-            <th style="padding: 12px 8px;">Harga</th>
-            <th style="padding: 12px 8px;">Stok</th>
-            <th style="padding: 12px 8px;">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
+    let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
+      <tr style="border-bottom:2px solid #eee;"><th>ID</th><th>Nama</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr>`;
+    
     this.products.forEach(p => {
-      const statusBadge = p.active 
-        ? `<span class="admin-badge" style="background:#e7efd9; color:#4d5b4f;">Aktif</span>` 
-        : `<span class="admin-badge" style="background:#f8d7da; color:#721c24;">Nonaktif</span>`;
-
-      html += `
-        <tr style="border-bottom: 1px solid #eaeaea;">
-          <td style="padding: 12px 8px; font-weight: bold; color: #55423d;">${p.product_id || p.id || '-'}</td>
-          <td style="padding: 12px 8px;">${p.product_name || p.name || '-'}</td>
-          <td style="padding: 12px 8px;">${p.category || '-'}</td>
-          <td style="padding: 12px 8px;">${this.formatRupiah(p.price)}</td>
-          <td style="padding: 12px 8px;">${p.stock}</td>
-          <td style="padding: 12px 8px;">${statusBadge}</td>
-        </tr>
-      `;
+      const badge = p.active ? `<span class="badge badge-success">Aktif</span>` : `<span class="badge badge-danger">Nonaktif</span>`;
+      html += `<tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px;">${p.product_id}</td>
+        <td style="padding:10px;">${p.product_name}</td>
+        <td style="padding:10px;">${this.formatRupiah(p.price)}</td>
+        <td style="padding:10px;">${p.stock}</td>
+        <td style="padding:10px;">${badge}</td>
+        <td style="padding:10px;">
+          <button onclick="AdminApp.openProductModal('${p.product_id}')" style="background:#5f7161; color:white; padding:5px 10px; border-radius:4px;">Edit</button>
+        </td>
+      </tr>`;
     });
+    box.innerHTML = html + "</table>";
+    box.style.padding = "0"; box.style.border = "none";
+  },
 
-    html += `</tbody></table>`;
-    container.innerHTML = html;
+  openProductModal(id = null) {
+    document.getElementById("productModal").style.display = "flex";
+    document.getElementById("productForm").reset();
     
-    // Rapikan styling container box
-    container.style.padding = "0";
-    container.style.border = "none";
-    container.style.backgroundColor = "transparent";
+    if (id) {
+      document.getElementById("modalTitle").textContent = "Edit Produk";
+      const p = this.products.find(x => x.product_id === id);
+      if(p) {
+        document.getElementById("formProductId").value = p.product_id;
+        document.getElementById("formName").value = p.product_name;
+        document.getElementById("formPrice").value = p.price;
+        document.getElementById("formStock").value = p.stock;
+        document.getElementById("formCategory").value = p.category || 'Paper';
+        document.getElementById("formActive").value = p.active ? "TRUE" : "FALSE";
+      }
+    } else {
+      document.getElementById("modalTitle").textContent = "Tambah Produk";
+      document.getElementById("formProductId").value = "";
+    }
+  },
+
+  closeProductModal() {
+    document.getElementById("productModal").style.display = "none";
+  },
+
+  async handleProductSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById("saveProductBtn");
+    btn.textContent = "Menyimpan..."; btn.disabled = true;
+
+    const payload = {
+      action: "saveProduct",
+      product_id: document.getElementById("formProductId").value,
+      product_name: document.getElementById("formName").value,
+      price: document.getElementById("formPrice").value,
+      stock: document.getElementById("formStock").value,
+      category: document.getElementById("formCategory").value,
+      active: document.getElementById("formActive").value === "TRUE"
+    };
+
+    try {
+      const res = await fetch(CONFIG.API_URL, { method: "POST", body: JSON.stringify(payload) });
+      const data = await res.json();
+      if(data.success) {
+        alert("Berhasil disimpan!");
+        this.closeProductModal();
+        this.loadData(); // Reload data dari sheets
+      } else alert("Gagal: " + data.message);
+    } catch (err) {
+      alert("Error jaringan.");
+    } finally {
+      btn.textContent = "Simpan"; btn.disabled = false;
+    }
+  },
+
+  // ==========================================
+  // ORDERS
+  // ==========================================
+  renderOrders() {
+    const box = document.querySelector('#panel-orders .placeholder-box');
+    if (!this.orders.length) { box.innerHTML = "<p>Belum ada pesanan.</p>"; return; }
+
+    let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
+      <tr style="border-bottom:2px solid #eee;"><th>ID / Tgl</th><th>Pembeli</th><th>Item</th><th>Total</th></tr>`;
+    
+    this.orders.forEach(o => {
+      const date = o.order_date ? new Date(o.order_date).toLocaleDateString('id-ID') : '-';
+      html += `<tr style="border-bottom:1px solid #eee;">
+        <td style="padding:10px;"><strong>${o.order_id}</strong><br><small>${date}</small></td>
+        <td style="padding:10px;"><strong>${o.customer_name}</strong><br><small>WA: ${o.whatsapp}</small></td>
+        <td style="padding:10px; font-size:12px; max-width:200px;">${String(o.items).replace(/\|/g, '<br>')}</td>
+        <td style="padding:10px; font-weight:bold; color:#b76e79;">${this.formatRupiah(o.total)}</td>
+      </tr>`;
+    });
+    box.innerHTML = html + "</table>";
+    box.style.padding = "0"; box.style.border = "none";
   }
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  AdminApp.init();
-});
+document.addEventListener("DOMContentLoaded", () => AdminApp.init());
