@@ -5,116 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control Panel - Nikiara.studio</title>
   <link rel="stylesheet" href="admin.css">
+  <style>
+    /* Styling Modal Sederhana */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal-content input, .modal-content textarea, .modal-content select { width: 100%; padding: 10px; margin: 8px 0 15px; border: 1px solid #ddd; border-radius: 6px; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .badge-success { background: #e7efd9; color: #4d5b4f; }
+    .badge-danger { background: #f8d7da; color: #721c24; }
+  </style>
 </head>
 <body>
 
-  <!-- 1. SCREEN LOGIN -->
-  <div id="loginScreen" class="login-container">
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-screen">
     <div class="login-card">
-      <div class="login-header">
-        <h2>Nikiara Admin</h2>
-        <p>Silakan masuk untuk mengelola toko</p>
-      </div>
+      <h2>Nikiara Admin</h2>
       <form id="loginForm">
-        <div class="form-group">
-          <label for="adminPassword">Password Admin</label>
-          <input type="password" id="adminPassword" placeholder="Masukkan password..." required>
-        </div>
-        <p id="loginError" class="login-error" style="display:none; color:red; margin-bottom:10px;">Password salah!</p>
-        <button type="submit" class="btn-primary">Login ke Dashboard</button>
+        <input type="password" id="adminPassword" required placeholder="Password Admin" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ccc; border-radius:8px;">
+        <button type="submit" class="primary-button" style="width:100%">Login</button>
+        <p id="loginError" style="display:none; color:red; margin-top:10px;">Password salah!</p>
       </form>
     </div>
   </div>
 
-  <!-- 2. DASHBOARD MAIN LAYOUT -->
-  <div id="adminDashboard" class="dashboard-container" style="display: none;">
-    
-    <!-- Sidebar -->
+  <!-- DASHBOARD -->
+  <div id="adminDashboard" class="admin-layout" style="display: none;">
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2>Nikiara Admin</h2>
-      </div>
+      <div class="sidebar-header"><h2>Admin Panel</h2></div>
       <nav class="sidebar-nav" id="sidebarNav">
         <button class="nav-item active" data-target="panel-dashboard">📊 Dashboard</button>
         <button class="nav-item" data-target="panel-products">📦 Products</button>
-        <button class="nav-item" data-target="panel-categories">🏷️ Categories</button>
         <button class="nav-item" data-target="panel-orders">🛒 Orders</button>
-        <button class="nav-item" data-target="panel-references">✨ Portfolio (Ref)</button>
-        <button class="nav-item" data-target="panel-settings">⚙️ Settings</button>
-        <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-        <button class="nav-item logout" id="logoutBtn">🚪 Logout</button>
+        <button id="logoutBtn" class="nav-item text-danger" style="margin-top:auto">🚪 Logout</button>
       </nav>
     </aside>
 
-    <!-- Content Area -->
     <main class="main-content">
-      <header class="top-bar">
-        <h1 id="currentPanelTitle">Dashboard</h1>
-        <div class="user-profile">
-          <span>Admin</span>
-        </div>
-      </header>
-
-      <div class="content-body">
+      <header class="top-header"><h2 id="currentPanelTitle">Dashboard</h2></header>
+      <div class="content-area">
         
-        <!-- PANEL 1: DASHBOARD OVERVIEW -->
-        <section id="panel-dashboard" class="panel active">
+        <div id="panel-dashboard" class="panel active">
           <div class="stats-grid">
-            <div class="stat-card">
-              <h3>Total Orders</h3>
-              <p class="stat-value">0</p>
-            </div>
-            <div class="stat-card">
-              <h3>Active Products</h3>
-              <p class="stat-value">0</p>
-            </div>
-            <div class="stat-card">
-              <h3>Total Revenue</h3>
-              <p class="stat-value">Rp0</p>
-            </div>
+            <div class="stat-card"><h3>Total Orders</h3><p class="stat-value">0</p></div>
+            <div class="stat-card"><h3>Active Products</h3><p class="stat-value">0</p></div>
+            <div class="stat-card"><h3>Total Revenue</h3><p class="stat-value">Rp0</p></div>
           </div>
-          <div class="placeholder-box">
-            <p>⏳ Menarik data pesanan...</p>
-          </div>
-        </section>
+        </div>
 
-        <!-- PANEL 2: PRODUCTS -->
-        <section id="panel-products" class="panel" style="display: none;">
-          <div class="placeholder-box">
-            <p>Product management feature will appear here.</p>
+        <div id="panel-products" class="panel" style="display: none;">
+          <div style="margin-bottom: 15px; text-align: right;">
+            <button class="primary-button" onclick="AdminApp.openProductModal()">+ Tambah Produk</button>
           </div>
-        </section>
+          <div class="placeholder-box"><p>⏳ Memuat Produk...</p></div>
+        </div>
 
-        <!-- PANEL 3: CATEGORIES -->
-        <section id="panel-categories" class="panel" style="display: none;">
-          <div class="placeholder-box">
-            <p>Category management table will appear here.</p>
-          </div>
-        </section>
-
-        <!-- PANEL 4: ORDERS (Tempat Tabel Pesanan Muncul) -->
-        <section id="panel-orders" class="panel" style="display: none;">
-          <div class="placeholder-box">
-            <p>⏳ Memuat daftar pesanan...</p>
-          </div>
-        </section>
-
-        <!-- PANEL 5: PORTFOLIO / REFERENCES -->
-        <section id="panel-references" class="panel" style="display: none;">
-          <div class="placeholder-box">
-            <p>Portfolio management table will appear here.</p>
-          </div>
-        </section>
-
-        <!-- PANEL 6: SETTINGS -->
-        <section id="panel-settings" class="panel" style="display: none;">
-          <div class="placeholder-box">
-            <p>Store settings will appear here.</p>
-          </div>
-        </section>
+        <div id="panel-orders" class="panel" style="display: none;">
+          <div class="placeholder-box"><p>⏳ Memuat Pesanan...</p></div>
+        </div>
 
       </div>
     </main>
+  </div>
+
+  <!-- MODAL TAMBAH/EDIT PRODUK -->
+  <div id="productModal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-bottom: 15px; color: #55423d;">Tambah Produk</h3>
+      <form id="productForm">
+        <input type="hidden" id="formProductId">
+        
+        <label>Nama Produk</label>
+        <input type="text" id="formName" required>
+        
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1"><label>Harga (Rp)</label><input type="number" id="formPrice" required></div>
+          <div style="flex:1"><label>Stok</label><input type="number" id="formStock" required></div>
+        </div>
+        
+        <label>Kategori</label>
+        <select id="formCategory" required>
+          <option value="Paper">Paper</option>
+          <option value="Sticker">Sticker</option>
+          <option value="Journal">Journal</option>
+          <option value="Decoration">Decoration</option>
+        </select>
+
+        <label>Status</label>
+        <select id="formActive">
+          <option value="TRUE">Aktif</option>
+          <option value="FALSE">Nonaktif</option>
+        </select>
+        
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" onclick="AdminApp.closeProductModal()" style="flex:1; padding:10px; background:#eee; border-radius:8px;">Batal</button>
+          <button type="submit" class="primary-button" style="flex:1;" id="saveProductBtn">Simpan</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script src="admin.js"></script>
