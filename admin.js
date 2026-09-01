@@ -2,7 +2,7 @@ const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec",
   DUMMY_PASSWORD: "admin",
   
-  // 👇 GANTI DUA BARIS INI DENGAN DATA CLOUDINARY MILIKMU 👇
+  // 👇 ISI DENGAN DATA CLOUDINARY MILIKMU 👇
   CLOUDINARY_URL: "https://api.cloudinary.com/v1_1/vtd7inkb/image/upload",
   CLOUDINARY_PRESET: "odbmmzkd" 
 };
@@ -10,6 +10,7 @@ const CONFIG = {
 const AdminApp = {
   products: [],
   orders: [],
+  references: [],
 
   init() {
     this.checkAuth();
@@ -18,8 +19,7 @@ const AdminApp = {
 
   checkAuth() {
     if (sessionStorage.getItem("nikiara_admin_logged") === "true") {
-      this.showDashboard();
-      this.loadData();
+      this.showDashboard(); this.loadData();
     } else {
       document.getElementById("loginScreen").style.display = "flex";
       document.getElementById("adminDashboard").style.display = "none";
@@ -32,15 +32,10 @@ const AdminApp = {
       sessionStorage.setItem("nikiara_admin_logged", "true");
       document.getElementById("loginError").style.display = "none";
       this.checkAuth();
-    } else {
-      document.getElementById("loginError").style.display = "block";
-    }
+    } else document.getElementById("loginError").style.display = "block";
   },
 
-  logout() {
-    sessionStorage.removeItem("nikiara_admin_logged");
-    location.reload();
-  },
+  logout() { sessionStorage.removeItem("nikiara_admin_logged"); location.reload(); },
 
   showDashboard() {
     document.getElementById("loginScreen").style.display = "none";
@@ -57,9 +52,11 @@ const AdminApp = {
     document.getElementById("loginForm").addEventListener("submit", e => this.handleLogin(e));
     document.getElementById("logoutBtn").addEventListener("click", () => this.logout());
     document.getElementById("productForm").addEventListener("submit", e => this.handleProductSubmit(e));
+    document.getElementById("referenceForm").addEventListener("submit", e => this.handleReferenceSubmit(e));
     
-    // Fitur Auto Upload Gambar saat File dipilih
-    document.getElementById("formImageFile").addEventListener("change", e => this.uploadImage(e));
+    // Cloudinary File Inputs
+    document.getElementById("formImageFile").addEventListener("change", e => this.uploadImage(e, "uploadStatus", "imagePreview", "formImageUrl", "saveProductBtn"));
+    document.getElementById("refImageFile").addEventListener("change", e => this.uploadImage(e, "refUploadStatus", "refImagePreview", "refImageUrl", "saveRefBtn"));
 
     const navItems = document.querySelectorAll('#sidebarNav .nav-item:not(#logoutBtn)');
     navItems.forEach(item => {
@@ -71,23 +68,20 @@ const AdminApp = {
     });
   },
 
-  formatRupiah(num) {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(num || 0);
-  },
+  formatRupiah(num) { return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(num || 0); },
 
   async loadData() {
     try {
-      const [prodRes, ordRes] = await Promise.all([
+      const [prodRes, ordRes, refRes] = await Promise.all([
         fetch(`${CONFIG.API_URL}?action=products`).then(r => r.json()),
-        fetch(`${CONFIG.API_URL}?action=orders`).then(r => r.json())
+        fetch(`${CONFIG.API_URL}?action=orders`).then(r => r.json()),
+        fetch(`${CONFIG.API_URL}?action=references`).then(r => r.json())
       ]);
-
       if (prodRes.success) this.products = prodRes.products || [];
       if (ordRes.success) this.orders = ordRes.orders || [];
+      if (refRes.success) this.references = refRes.references || [];
 
-      this.renderDashboard();
-      this.renderProducts();
-      this.renderOrders();
+      this.renderDashboard(); this.renderProducts(); this.renderOrders(); this.renderReferences();
     } catch (err) { console.error("Gagal load data", err); }
   },
 
@@ -96,86 +90,23 @@ const AdminApp = {
     const totalRevenue = this.orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
     const stats = document.querySelectorAll('.stat-value');
     if (stats.length >= 3) {
-      stats[0].textContent = this.orders.length;
-      stats[1].textContent = activeProducts;
-      stats[2].textContent = this.formatRupiah(totalRevenue);
+      stats[0].textContent = this.orders.length; stats[1].textContent = activeProducts; stats[2].textContent = this.formatRupiah(totalRevenue);
     }
   },
 
-  renderProducts() {
-    const box = document.querySelector('#panel-products .placeholder-box');
-    if (!this.products.length) { box.innerHTML = "<p>Belum ada produk.</p>"; return; }
-    
-    let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
-      <tr style="border-bottom:2px solid #eee;"><th>Foto</th><th>ID / Nama</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr>`;
-    
-    this.products.forEach(p => {
-      const badge = p.active ? `<span class="badge badge-success">Aktif</span>` : `<span class="badge badge-danger">Nonaktif</span>`;
-      const img = p.image_url ? `<img src="${p.image_url}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">` : "📦";
-      
-      html += `<tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px;">${img}</td>
-        <td style="padding:10px;"><strong>${p.product_id}</strong><br>${p.product_name}</td>
-        <td style="padding:10px;">${this.formatRupiah(p.price)}</td>
-        <td style="padding:10px;">${p.stock}</td>
-        <td style="padding:10px;">${badge}</td>
-        <td style="padding:10px;">
-          <button onclick="AdminApp.openProductModal('${p.product_id}')" style="background:#5f7161; color:white; padding:5px 10px; border-radius:4px;">Edit</button>
-        </td>
-      </tr>`;
-    });
-    box.innerHTML = html + "</table>";
-    box.style.padding = "0"; box.style.border = "none";
-  },
-
-  openProductModal(id = null) {
-    document.getElementById("productModal").style.display = "flex";
-    document.getElementById("productForm").reset();
-    document.getElementById("formImageUrl").value = "";
-    document.getElementById("imagePreview").style.display = "none";
-    document.getElementById("uploadStatus").style.display = "none";
-    
-    if (id) {
-      document.getElementById("modalTitle").textContent = "Edit Produk";
-      const p = this.products.find(x => x.product_id === id);
-      if(p) {
-        document.getElementById("formProductId").value = p.product_id;
-        document.getElementById("formName").value = p.product_name;
-        document.getElementById("formPrice").value = p.price;
-        document.getElementById("formStock").value = p.stock;
-        document.getElementById("formCategory").value = p.category || 'Paper';
-        document.getElementById("formDescription").value = p.description || '';
-        document.getElementById("formActive").value = p.active ? "TRUE" : "FALSE";
-        
-        if (p.image_url) {
-          document.getElementById("formImageUrl").value = p.image_url;
-          document.getElementById("imagePreview").style.backgroundImage = `url(${p.image_url})`;
-          document.getElementById("imagePreview").style.display = "block";
-        }
-      }
-    } else {
-      document.getElementById("modalTitle").textContent = "Tambah Produk";
-      document.getElementById("formProductId").value = "";
-    }
-  },
-
-  closeProductModal() {
-    document.getElementById("productModal").style.display = "none";
-  },
-
-  // Logika Upload Foto ke Cloudinary
-  async uploadImage(e) {
+  // ==========================================
+  // CLOUDINARY UPLOAD HANDLER
+  // ==========================================
+  async uploadImage(e, statusId, previewId, urlId, btnId) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const status = document.getElementById("uploadStatus");
-    const preview = document.getElementById("imagePreview");
-    const urlInput = document.getElementById("formImageUrl");
-    const saveBtn = document.getElementById("saveProductBtn");
+    const status = document.getElementById(statusId);
+    const preview = document.getElementById(previewId);
+    const urlInput = document.getElementById(urlId);
+    const saveBtn = document.getElementById(btnId);
 
-    status.style.display = "block";
-    status.style.color = "#888";
-    status.textContent = "⏳ Sedang mengunggah foto...";
+    status.style.display = "block"; status.style.color = "#888"; status.textContent = "⏳ Sedang mengunggah foto...";
     saveBtn.disabled = true;
 
     const formData = new FormData();
@@ -185,68 +116,118 @@ const AdminApp = {
     try {
       const res = await fetch(CONFIG.CLOUDINARY_URL, { method: "POST", body: formData });
       const data = await res.json();
-      
       if (data.secure_url) {
         urlInput.value = data.secure_url;
-        preview.style.backgroundImage = `url(${data.secure_url})`;
-        preview.style.display = "block";
-        status.textContent = "✅ Foto berhasil diunggah!";
-        status.style.color = "green";
-      } else { throw new Error("Gagal dapat URL"); }
+        preview.style.backgroundImage = `url(${data.secure_url})`; preview.style.display = "block";
+        status.textContent = "✅ Foto berhasil diunggah!"; status.style.color = "green";
+      } else throw new Error("Gagal dapat URL");
     } catch (err) {
-      status.textContent = "❌ Gagal mengunggah foto. Pastikan Cloudinary tersetting benar.";
-      status.style.color = "red";
-    } finally {
-      saveBtn.disabled = false;
-    }
+      status.textContent = "❌ Gagal mengunggah foto. Pastikan Cloudinary tersetting benar."; status.style.color = "red";
+    } finally { saveBtn.disabled = false; }
   },
+
+  // ==========================================
+  // PRODUCTS LOGIC
+  // ==========================================
+  renderProducts() {
+    const box = document.getElementById('productBox');
+    if (!this.products.length) { box.innerHTML = "<p>Belum ada produk.</p>"; return; }
+    let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
+      <tr style="border-bottom:2px solid #eee;"><th>Foto</th><th>ID / Nama</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr>`;
+    this.products.forEach(p => {
+      const badge = p.active ? `<span class="badge badge-success">Aktif</span>` : `<span class="badge badge-danger">Nonaktif</span>`;
+      const img = p.image_url ? `<img src="${p.image_url}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">` : "📦";
+      html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">${img}</td><td style="padding:10px;"><strong>${p.product_id}</strong><br>${p.product_name}</td><td style="padding:10px;">${this.formatRupiah(p.price)}</td><td style="padding:10px;">${p.stock}</td><td style="padding:10px;">${badge}</td><td style="padding:10px;"><button onclick="AdminApp.openProductModal('${p.product_id}')" style="background:#5f7161; color:white; padding:5px 10px; border-radius:4px;">Edit</button></td></tr>`;
+    });
+    box.innerHTML = html + "</table>"; box.style.padding = "0"; box.style.border = "none";
+  },
+
+  openProductModal(id = null) {
+    document.getElementById("productModal").style.display = "flex"; document.getElementById("productForm").reset();
+    document.getElementById("formImageUrl").value = ""; document.getElementById("imagePreview").style.display = "none"; document.getElementById("uploadStatus").style.display = "none";
+    
+    if (id) {
+      document.getElementById("modalTitle").textContent = "Edit Produk";
+      const p = this.products.find(x => x.product_id === id);
+      if(p) {
+        document.getElementById("formProductId").value = p.product_id; document.getElementById("formName").value = p.product_name; document.getElementById("formPrice").value = p.price; document.getElementById("formStock").value = p.stock; document.getElementById("formCategory").value = p.category || 'Paper'; document.getElementById("formDescription").value = p.description || ''; document.getElementById("formActive").value = p.active ? "TRUE" : "FALSE";
+        if (p.image_url) { document.getElementById("formImageUrl").value = p.image_url; document.getElementById("imagePreview").style.backgroundImage = `url(${p.image_url})`; document.getElementById("imagePreview").style.display = "block"; }
+      }
+    } else { document.getElementById("modalTitle").textContent = "Tambah Produk"; document.getElementById("formProductId").value = ""; }
+  },
+
+  closeProductModal() { document.getElementById("productModal").style.display = "none"; },
 
   async handleProductSubmit(e) {
     e.preventDefault();
-    const btn = document.getElementById("saveProductBtn");
-    btn.textContent = "Menyimpan..."; btn.disabled = true;
-
+    const btn = document.getElementById("saveProductBtn"); btn.textContent = "Menyimpan..."; btn.disabled = true;
     const payload = {
-      action: "saveProduct",
-      product_id: document.getElementById("formProductId").value,
-      product_name: document.getElementById("formName").value,
-      price: document.getElementById("formPrice").value,
-      stock: document.getElementById("formStock").value,
-      category: document.getElementById("formCategory").value,
-      image_url: document.getElementById("formImageUrl").value,
-      description: document.getElementById("formDescription").value,
-      active: document.getElementById("formActive").value === "TRUE"
+      action: "saveProduct", product_id: document.getElementById("formProductId").value, product_name: document.getElementById("formName").value, price: document.getElementById("formPrice").value, stock: document.getElementById("formStock").value, category: document.getElementById("formCategory").value, image_url: document.getElementById("formImageUrl").value, description: document.getElementById("formDescription").value, active: document.getElementById("formActive").value === "TRUE"
     };
-
     try {
-      const res = await fetch(CONFIG.API_URL, { method: "POST", body: JSON.stringify(payload) });
-      const data = await res.json();
-      if(data.success) {
-        alert("Berhasil disimpan!");
-        this.closeProductModal();
-        this.loadData();
-      } else alert("Gagal: " + data.message);
-    } catch (err) { alert("Error jaringan."); } finally {
-      btn.textContent = "Simpan"; btn.disabled = false;
-    }
+      const res = await fetch(CONFIG.API_URL, { method: "POST", body: JSON.stringify(payload) }); const data = await res.json();
+      if(data.success) { alert("Tersimpan!"); this.closeProductModal(); this.loadData(); } else alert("Gagal: " + data.message);
+    } catch (err) { alert("Error jaringan."); } finally { btn.textContent = "Simpan"; btn.disabled = false; }
   },
 
+  // ==========================================
+  // REFERENCES / PORTFOLIO LOGIC
+  // ==========================================
+  renderReferences() {
+    const box = document.getElementById('referenceBox');
+    if (!this.references.length) { box.innerHTML = "<p>Belum ada karya portfolio.</p>"; return; }
+    let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
+      <tr style="border-bottom:2px solid #eee;"><th>Foto</th><th>Judul</th><th>Deskripsi</th><th>Urutan</th><th>Status</th><th>Aksi</th></tr>`;
+    this.references.forEach(r => {
+      const badge = r.active ? `<span class="badge badge-success">Aktif</span>` : `<span class="badge badge-danger">Nonaktif</span>`;
+      const images = (r.image_urls || "").split(",");
+      const img = images[0] ? `<img src="${images[0]}" style="width:50px; height:50px; border-radius:6px; object-fit:cover;">` : "🖼️";
+      html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">${img}</td><td style="padding:10px;"><strong>${r.title}</strong></td><td style="padding:10px; font-size:12px;">${r.description || '-'}</td><td style="padding:10px;">${r.sort_order}</td><td style="padding:10px;">${badge}</td><td style="padding:10px;"><button onclick="AdminApp.openReferenceModal('${r.reference_id}')" style="background:#5f7161; color:white; padding:5px 10px; border-radius:4px;">Edit</button></td></tr>`;
+    });
+    box.innerHTML = html + "</table>"; box.style.padding = "0"; box.style.border = "none";
+  },
+
+  openReferenceModal(id = null) {
+    document.getElementById("referenceModal").style.display = "flex"; document.getElementById("referenceForm").reset();
+    document.getElementById("refImageUrl").value = ""; document.getElementById("refImagePreview").style.display = "none"; document.getElementById("refUploadStatus").style.display = "none";
+    if (id) {
+      document.getElementById("refModalTitle").textContent = "Edit Karya";
+      const r = this.references.find(x => x.reference_id === id);
+      if(r) {
+        document.getElementById("refId").value = r.reference_id; document.getElementById("refTitle").value = r.title; document.getElementById("refDescription").value = r.description || ''; document.getElementById("refSort").value = r.sort_order; document.getElementById("refActive").value = r.active ? "TRUE" : "FALSE";
+        const images = (r.image_urls || "").split(",");
+        if (images[0]) { document.getElementById("refImageUrl").value = images[0]; document.getElementById("refImagePreview").style.backgroundImage = `url(${images[0]})`; document.getElementById("refImagePreview").style.display = "block"; }
+      }
+    } else { document.getElementById("refModalTitle").textContent = "Tambah Karya"; document.getElementById("refId").value = ""; document.getElementById("refSort").value = this.references.length + 1; }
+  },
+
+  closeReferenceModal() { document.getElementById("referenceModal").style.display = "none"; },
+
+  async handleReferenceSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById("saveRefBtn"); btn.textContent = "Menyimpan..."; btn.disabled = true;
+    const payload = {
+      action: "saveReference", reference_id: document.getElementById("refId").value, title: document.getElementById("refTitle").value, image_urls: document.getElementById("refImageUrl").value, description: document.getElementById("refDescription").value, sort_order: document.getElementById("refSort").value, active: document.getElementById("refActive").value === "TRUE"
+    };
+    try {
+      const res = await fetch(CONFIG.API_URL, { method: "POST", body: JSON.stringify(payload) }); const data = await res.json();
+      if(data.success) { alert("Tersimpan!"); this.closeReferenceModal(); this.loadData(); } else alert("Gagal: " + data.message);
+    } catch (err) { alert("Error jaringan."); } finally { btn.textContent = "Simpan"; btn.disabled = false; }
+  },
+
+  // ==========================================
+  // ORDERS LOGIC
+  // ==========================================
   renderOrders() {
-    const box = document.querySelector('#panel-orders .placeholder-box');
+    const box = document.getElementById('orderBox');
     if (!this.orders.length) { box.innerHTML = "<p>Belum ada pesanan.</p>"; return; }
     let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
       <tr style="border-bottom:2px solid #eee;"><th>ID / Tgl</th><th>Pembeli</th><th>Item</th><th>Total</th></tr>`;
     this.orders.forEach(o => {
       const date = o.order_date ? new Date(o.order_date).toLocaleDateString('id-ID') : '-';
-      html += `<tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px;"><strong>${o.order_id}</strong><br><small>${date}</small></td>
-        <td style="padding:10px;"><strong>${o.customer_name}</strong><br><small>WA: ${o.whatsapp}</small></td>
-        <td style="padding:10px; font-size:12px; max-width:200px;">${String(o.items).replace(/\|/g, '<br>')}</td>
-        <td style="padding:10px; font-weight:bold; color:#b76e79;">${this.formatRupiah(o.total)}</td>
-      </tr>`;
+      html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;"><strong>${o.order_id}</strong><br><small>${date}</small></td><td style="padding:10px;"><strong>${o.customer_name}</strong><br><small>WA: ${o.whatsapp}</small></td><td style="padding:10px; font-size:12px; max-width:200px;">${String(o.items).replace(/\|/g, '<br>')}</td><td style="padding:10px; font-weight:bold; color:#b76e79;">${this.formatRupiah(o.total)}</td></tr>`;
     });
-    box.innerHTML = html + "</table>";
-    box.style.padding = "0"; box.style.border = "none";
+    box.innerHTML = html + "</table>"; box.style.padding = "0"; box.style.border = "none";
   }
 };
 
