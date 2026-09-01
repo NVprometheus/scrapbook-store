@@ -243,9 +243,21 @@ const ReferencesModule = {
     try {
       const data = await Utils.apiCall({ action: "references" });
       if (!data.success) throw new Error(data.message || "Failed to load references");
-      this.references = data.references || [];
       
-      // Pastikan section selalu muncul agar tombol di Header/Hero bisa scroll ke sini
+      // FIX: Konversi otomatis link Google Drive menjadi direct image link
+      this.references = (data.references || []).map(ref => {
+        const urls = (ref.image_urls || ref.image_url || "").split(",").map(url => {
+          const u = url.trim();
+          const m1 = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+          if (m1) return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1000`;
+          const m2 = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+          if (m2) return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1000`;
+          return u; // Return Cloudinary URL apa adanya
+        }).filter(Boolean);
+        
+        return { ...ref, image_urls: urls.join(",") };
+      });
+      
       refSection.style.display = "block";
       this.renderGrid();
     } catch (error) {
@@ -253,6 +265,7 @@ const ReferencesModule = {
       document.getElementById("references-empty").style.display = "block";
     }
   },
+  
   renderGrid() {
     const grid = document.getElementById("references-grid");
     const empty = document.getElementById("references-empty");
@@ -262,10 +275,13 @@ const ReferencesModule = {
 
     grid.innerHTML = this.references.map(ref => {
       const images = (ref.image_urls || "").split(",");
+      // Tampilkan placeholder jika gambar benar-benar kosong (seperti pada data "testing")
+      const imgHtml = images[0] ? `<img src="${Utils.escapeHtml(images[0])}" class="reference-card-image" alt="${Utils.escapeHtml(ref.title || "")}">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#eee; font-size:50px;">🖼️</div>`;
+      
       return `
       <div class="reference-card" onclick="ReferencesModule.openModal('${Utils.escapeHtml(ref.reference_id)}')">
         <div class="reference-card-image-container">
-          <img src="${Utils.escapeHtml(images[0] || "")}" class="reference-card-image" alt="${Utils.escapeHtml(ref.title || "")}">
+          ${imgHtml}
         </div>
         <div class="reference-card-overlay">
           <h3 class="reference-card-title">${Utils.escapeHtml(ref.title || "")}</h3>
@@ -274,46 +290,64 @@ const ReferencesModule = {
       </div>
     `}).join("");
   },
+  
   openModal(refId) {
     const ref = this.references.find((r) => String(r.reference_id) === String(refId));
     if (!ref) return;
     this.currentViewId = refId;
     this.currentImageIndex = 0;
     const images = (ref.image_urls || "").split(",").filter(Boolean);
+    
     document.getElementById("references-modal-title").textContent = Utils.escapeHtml(ref.title || "");
     document.getElementById("references-modal-description").textContent = Utils.escapeHtml(ref.description || "");
-    this.updateModalImage(images);
+    
+    // Sembunyikan foto di popup modal jika datanya memang kosong
+    const imgElement = document.getElementById("references-modal-image");
+    if (images.length > 0) {
+      imgElement.style.display = "block";
+      this.updateModalImage(images);
+    } else {
+      imgElement.style.display = "none";
+    }
+    
     document.getElementById("references-modal").style.display = "flex";
     
     const controls = document.getElementById("references-carousel-controls");
     if (images.length > 1) { controls.style.display = "flex"; this.renderCarouselDots(images.length); } 
     else { controls.style.display = "none"; }
   },
+  
   updateModalImage(images) {
     document.getElementById("references-modal-image").src = Utils.escapeHtml(images[this.currentImageIndex] || "");
     document.getElementById("references-image-counter").textContent = `${this.currentImageIndex + 1}/${images.length}`;
   },
+  
   renderCarouselDots(count) {
     document.getElementById("references-carousel-dots").innerHTML = [...Array(count)].map((_, i) => `
       <div class="carousel-dot ${i === this.currentImageIndex ? "active" : ""}" onclick="ReferencesModule.goToImage(${i})"></div>
     `).join("");
   },
+  
   nextImage() {
     const ref = this.references.find((r) => String(r.reference_id) === String(this.currentViewId));
     if (ref) {
       const images = ref.image_urls.split(",").filter(Boolean);
+      if (images.length === 0) return;
       this.currentImageIndex = (this.currentImageIndex + 1) % images.length;
       this.updateModalImage(images); this.renderCarouselDots(images.length);
     }
   },
+  
   prevImage() {
     const ref = this.references.find((r) => String(r.reference_id) === String(this.currentViewId));
     if (ref) {
       const images = ref.image_urls.split(",").filter(Boolean);
+      if (images.length === 0) return;
       this.currentImageIndex = (this.currentImageIndex - 1 + images.length) % images.length;
       this.updateModalImage(images); this.renderCarouselDots(images.length);
     }
   },
+  
   goToImage(index) {
     this.currentImageIndex = index;
     const ref = this.references.find((r) => String(r.reference_id) === String(this.currentViewId));
@@ -322,9 +356,9 @@ const ReferencesModule = {
       this.updateModalImage(images); this.renderCarouselDots(images.length);
     }
   },
+  
   closeModal() { document.getElementById("references-modal").style.display = "none"; },
 };
-
 // =========================================================
 // CHECKOUT MODULE
 // =========================================================
