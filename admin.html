@@ -6,7 +6,6 @@
   <title>Control Panel - Nikiara.studio</title>
   <link rel="stylesheet" href="admin.css">
   <style>
-    /* Styling Modal Sederhana */
     .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
     .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
     .modal-content input, .modal-content textarea, .modal-content select { width: 100%; padding: 10px; margin: 8px 0 15px; border: 1px solid #ddd; border-radius: 6px; }
@@ -17,7 +16,6 @@
 </head>
 <body>
 
-  <!-- LOGIN SCREEN -->
   <div id="loginScreen" class="login-screen">
     <div class="login-card">
       <h2>Nikiara Admin</h2>
@@ -29,7 +27,6 @@
     </div>
   </div>
 
-  <!-- DASHBOARD -->
   <div id="adminDashboard" class="admin-layout" style="display: none;">
     <aside class="sidebar">
       <div class="sidebar-header"><h2>Admin Panel</h2></div>
@@ -44,7 +41,6 @@
     <main class="main-content">
       <header class="top-header"><h2 id="currentPanelTitle">Dashboard</h2></header>
       <div class="content-area">
-        
         <div id="panel-dashboard" class="panel active">
           <div class="stats-grid">
             <div class="stat-card"><h3>Total Orders</h3><p class="stat-value">0</p></div>
@@ -63,18 +59,25 @@
         <div id="panel-orders" class="panel" style="display: none;">
           <div class="placeholder-box"><p>⏳ Memuat Pesanan...</p></div>
         </div>
-
       </div>
     </main>
   </div>
 
-  <!-- MODAL TAMBAH/EDIT PRODUK -->
+  <!-- MODAL PRODUK -->
   <div id="productModal" class="modal">
     <div class="modal-content">
       <h3 id="modalTitle" style="margin-bottom: 15px; color: #55423d;">Tambah Produk</h3>
       <form id="productForm">
         <input type="hidden" id="formProductId">
         
+        <label>Foto Produk</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="file" id="formImageFile" accept="image/*" style="flex:1;">
+          <input type="hidden" id="formImageUrl">
+          <div id="imagePreview" style="width:45px; height:45px; border-radius:6px; background:#eee; display:none; background-size:cover;"></div>
+        </div>
+        <p id="uploadStatus" style="font-size:12px; margin-top:-10px; margin-bottom:15px; display:none;"></p>
+
         <label>Nama Produk</label>
         <input type="text" id="formName" required>
         
@@ -90,6 +93,9 @@
           <option value="Journal">Journal</option>
           <option value="Decoration">Decoration</option>
         </select>
+
+        <label>Deskripsi Singkat</label>
+        <textarea id="formDescription" rows="2"></textarea>
 
         <label>Status</label>
         <select id="formActive">
