@@ -181,45 +181,51 @@ const AdminApp = {
   renderReferences() {
     const box = document.getElementById('referenceBox');
     if (!this.references.length) { box.innerHTML = "<p>Belum ada karya portfolio.</p>"; return; }
-    let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
-      <tr style="border-bottom:2px solid #eee;"><th>Foto</th><th>Judul</th><th>Deskripsi</th><th>Urutan</th><th>Status</th><th>Aksi</th></tr>`;
+    
+    let html = `<div class="admin-ref-grid">`;
     this.references.forEach(r => {
-      const badge = r.active ? `<span class="badge badge-success">Aktif</span>` : `<span class="badge badge-danger">Nonaktif</span>`;
+      const badge = r.active ? `<span class="badge badge-success" style="position:absolute; margin:10px;">Aktif</span>` : `<span class="badge badge-danger" style="position:absolute; margin:10px;">Nonaktif</span>`;
       const images = (r.image_urls || "").split(",");
-      const img = images[0] ? `<img src="${images[0]}" style="width:50px; height:50px; border-radius:6px; object-fit:cover;">` : "🖼️";
-      html += `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px;">${img}</td><td style="padding:10px;"><strong>${r.title}</strong></td><td style="padding:10px; font-size:12px;">${r.description || '-'}</td><td style="padding:10px;">${r.sort_order}</td><td style="padding:10px;">${badge}</td><td style="padding:10px;"><button onclick="AdminApp.openReferenceModal('${r.reference_id}')" style="background:#5f7161; color:white; padding:5px 10px; border-radius:4px;">Edit</button></td></tr>`;
+      const img = images[0] ? `<img src="${images[0]}" class="admin-ref-img">` : `<div class="admin-ref-img" style="display:grid; place-items:center; font-size:40px;">🖼️</div>`;
+      
+      html += `
+        <div class="admin-ref-card">
+          ${badge}
+          ${img}
+          <div class="admin-ref-info">
+            <div class="admin-ref-title">${r.title}</div>
+            <div class="admin-ref-desc">${r.description || '-'}</div>
+            <div style="font-size:11px; color:#aaa; margin-bottom:10px;">Urutan: ${r.sort_order}</div>
+            <div class="admin-ref-actions">
+              <button class="btn-edit" onclick="AdminApp.openReferenceModal('${r.reference_id}')">Edit</button>
+              <button class="btn-delete" onclick="AdminApp.deleteReference('${r.reference_id}')">Hapus</button>
+            </div>
+          </div>
+        </div>`;
     });
-    box.innerHTML = html + "</table>"; box.style.padding = "0"; box.style.border = "none";
+    html += `</div>`;
+    box.innerHTML = html; 
+    box.style.padding = "0"; box.style.border = "none"; box.style.background = "transparent";
   },
 
-  openReferenceModal(id = null) {
-    document.getElementById("referenceModal").style.display = "flex"; document.getElementById("referenceForm").reset();
-    document.getElementById("refImageUrl").value = ""; document.getElementById("refImagePreview").style.display = "none"; document.getElementById("refUploadStatus").style.display = "none";
-    if (id) {
-      document.getElementById("refModalTitle").textContent = "Edit Karya";
-      const r = this.references.find(x => x.reference_id === id);
-      if(r) {
-        document.getElementById("refId").value = r.reference_id; document.getElementById("refTitle").value = r.title; document.getElementById("refDescription").value = r.description || ''; document.getElementById("refSort").value = r.sort_order; document.getElementById("refActive").value = r.active ? "TRUE" : "FALSE";
-        const images = (r.image_urls || "").split(",");
-        if (images[0]) { document.getElementById("refImageUrl").value = images[0]; document.getElementById("refImagePreview").style.backgroundImage = `url(${images[0]})`; document.getElementById("refImagePreview").style.display = "block"; }
-      }
-    } else { document.getElementById("refModalTitle").textContent = "Tambah Karya"; document.getElementById("refId").value = ""; document.getElementById("refSort").value = this.references.length + 1; }
-  },
-
-  closeReferenceModal() { document.getElementById("referenceModal").style.display = "none"; },
-
-  async handleReferenceSubmit(e) {
-    e.preventDefault();
-    const btn = document.getElementById("saveRefBtn"); btn.textContent = "Menyimpan..."; btn.disabled = true;
-    const payload = {
-      action: "saveReference", reference_id: document.getElementById("refId").value, title: document.getElementById("refTitle").value, image_urls: document.getElementById("refImageUrl").value, description: document.getElementById("refDescription").value, sort_order: document.getElementById("refSort").value, active: document.getElementById("refActive").value === "TRUE"
-    };
+  async deleteReference(id) {
+    if (!confirm("Yakin ingin menghapus karya ini?")) return;
     try {
-      const res = await fetch(CONFIG.API_URL, { method: "POST", body: JSON.stringify(payload) }); const data = await res.json();
-      if(data.success) { alert("Tersimpan!"); this.closeReferenceModal(); this.loadData(); } else alert("Gagal: " + data.message);
-    } catch (err) { alert("Error jaringan."); } finally { btn.textContent = "Simpan"; btn.disabled = false; }
+      const res = await fetch(CONFIG.API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "deleteReference", reference_id: id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Berhasil dihapus!");
+        this.loadData(); // Tarik data terbaru
+      } else {
+        alert("Gagal menghapus: " + data.message);
+      }
+    } catch (err) {
+      alert("Error jaringan saat menghapus.");
+    }
   },
-
   // ==========================================
   // ORDERS LOGIC
   // ==========================================
