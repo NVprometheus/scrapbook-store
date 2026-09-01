@@ -34,6 +34,7 @@
         <button class="nav-item active" data-target="panel-dashboard">📊 Dashboard</button>
         <button class="nav-item" data-target="panel-products">📦 Products</button>
         <button class="nav-item" data-target="panel-orders">🛒 Orders</button>
+        <button class="nav-item" data-target="panel-references">✨ Portfolio</button>
         <button id="logoutBtn" class="nav-item text-danger" style="margin-top:auto">🚪 Logout</button>
       </nav>
     </aside>
@@ -50,14 +51,18 @@
         </div>
 
         <div id="panel-products" class="panel" style="display: none;">
-          <div style="margin-bottom: 15px; text-align: right;">
-            <button class="primary-button" onclick="AdminApp.openProductModal()">+ Tambah Produk</button>
-          </div>
-          <div class="placeholder-box"><p>⏳ Memuat Produk...</p></div>
+          <div style="margin-bottom: 15px; text-align: right;"><button class="primary-button" onclick="AdminApp.openProductModal()">+ Tambah Produk</button></div>
+          <div class="placeholder-box" id="productBox"><p>⏳ Memuat Produk...</p></div>
         </div>
 
         <div id="panel-orders" class="panel" style="display: none;">
-          <div class="placeholder-box"><p>⏳ Memuat Pesanan...</p></div>
+          <div class="placeholder-box" id="orderBox"><p>⏳ Memuat Pesanan...</p></div>
+        </div>
+        
+        <!-- PANEL PORTFOLIO / REFERENCES -->
+        <div id="panel-references" class="panel" style="display: none;">
+          <div style="margin-bottom: 15px; text-align: right;"><button class="primary-button" onclick="AdminApp.openReferenceModal()">+ Tambah Karya</button></div>
+          <div class="placeholder-box" id="referenceBox"><p>⏳ Memuat Portfolio...</p></div>
         </div>
       </div>
     </main>
@@ -66,10 +71,9 @@
   <!-- MODAL PRODUK -->
   <div id="productModal" class="modal">
     <div class="modal-content">
-      <h3 id="modalTitle" style="margin-bottom: 15px; color: #55423d;">Tambah Produk</h3>
+      <h3 id="modalTitle" style="margin-bottom: 15px;">Tambah Produk</h3>
       <form id="productForm">
         <input type="hidden" id="formProductId">
-        
         <label>Foto Produk</label>
         <div style="display:flex; gap:10px; align-items:center;">
           <input type="file" id="formImageFile" accept="image/*" style="flex:1;">
@@ -77,35 +81,48 @@
           <div id="imagePreview" style="width:45px; height:45px; border-radius:6px; background:#eee; display:none; background-size:cover;"></div>
         </div>
         <p id="uploadStatus" style="font-size:12px; margin-top:-10px; margin-bottom:15px; display:none;"></p>
-
-        <label>Nama Produk</label>
-        <input type="text" id="formName" required>
-        
+        <label>Nama Produk</label><input type="text" id="formName" required>
         <div style="display:flex; gap:10px;">
           <div style="flex:1"><label>Harga (Rp)</label><input type="number" id="formPrice" required></div>
           <div style="flex:1"><label>Stok</label><input type="number" id="formStock" required></div>
         </div>
-        
         <label>Kategori</label>
-        <select id="formCategory" required>
-          <option value="Paper">Paper</option>
-          <option value="Sticker">Sticker</option>
-          <option value="Journal">Journal</option>
-          <option value="Decoration">Decoration</option>
-        </select>
-
-        <label>Deskripsi Singkat</label>
-        <textarea id="formDescription" rows="2"></textarea>
-
-        <label>Status</label>
-        <select id="formActive">
-          <option value="TRUE">Aktif</option>
-          <option value="FALSE">Nonaktif</option>
-        </select>
-        
+        <select id="formCategory" required><option value="Paper">Paper</option><option value="Sticker">Sticker</option><option value="Journal">Journal</option><option value="Decoration">Decoration</option></select>
+        <label>Deskripsi Singkat</label><textarea id="formDescription" rows="2"></textarea>
+        <label>Status</label><select id="formActive"><option value="TRUE">Aktif</option><option value="FALSE">Nonaktif</option></select>
         <div style="display:flex; gap:10px; margin-top:20px;">
           <button type="button" onclick="AdminApp.closeProductModal()" style="flex:1; padding:10px; background:#eee; border-radius:8px;">Batal</button>
           <button type="submit" class="primary-button" style="flex:1;" id="saveProductBtn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL REFERENCES -->
+  <div id="referenceModal" class="modal">
+    <div class="modal-content">
+      <h3 id="refModalTitle" style="margin-bottom: 15px;">Tambah Karya (Portfolio)</h3>
+      <form id="referenceForm">
+        <input type="hidden" id="refId">
+        <label>Foto Karya</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="file" id="refImageFile" accept="image/*" style="flex:1;">
+          <input type="hidden" id="refImageUrl">
+          <div id="refImagePreview" style="width:45px; height:45px; border-radius:6px; background:#eee; display:none; background-size:cover;"></div>
+        </div>
+        <p id="refUploadStatus" style="font-size:12px; margin-top:-10px; margin-bottom:15px; display:none;"></p>
+        
+        <label>Judul Karya</label><input type="text" id="refTitle" required>
+        <label>Deskripsi (Opsional)</label><textarea id="refDescription" rows="2"></textarea>
+        
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1"><label>Urutan (Angka)</label><input type="number" id="refSort" value="1" required></div>
+          <div style="flex:1"><label>Status</label><select id="refActive"><option value="TRUE">Aktif</option><option value="FALSE">Nonaktif</option></select></div>
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button type="button" onclick="AdminApp.closeReferenceModal()" style="flex:1; padding:10px; background:#eee; border-radius:8px;">Batal</button>
+          <button type="submit" class="primary-button" style="flex:1;" id="saveRefBtn">Simpan</button>
         </div>
       </form>
     </div>
