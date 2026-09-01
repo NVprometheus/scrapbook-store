@@ -184,8 +184,9 @@ const AdminApp = {
     
     let html = `<div class="admin-ref-grid">`;
     this.references.forEach(r => {
-      const badge = r.active ? `<span class="badge badge-success" style="position:absolute; margin:10px;">Aktif</span>` : `<span class="badge badge-danger" style="position:absolute; margin:10px;">Nonaktif</span>`;
-      const images = (r.image_urls || "").split(",");
+     const badge = r.active 
+        ? `<span class="badge badge-success" style="position:absolute; top:10px; right:10px; z-index:2; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Aktif</span>` 
+        : `<span class="badge badge-danger" style="position:absolute; top:10px; right:10px; z-index:2; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Nonaktif</span>`;
       const img = images[0] ? `<img src="${images[0]}" class="admin-ref-img">` : `<div class="admin-ref-img" style="display:grid; place-items:center; font-size:40px;">🖼️</div>`;
       
       html += `
