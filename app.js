@@ -456,7 +456,30 @@ function setupEventListeners() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") { UIModule.closeCart(); UIModule.closeCheckout(); ReferencesModule.closeModal(); }
   });
-}
+
+// FITUR SWIPE (GESER) UNTUK MODAL PORTFOLIO SEPERTI INSTAGRAM
+  let touchstartX = 0;
+  let touchendX = 0;
+  const modalImgContainer = document.getElementById("references-modal-image");
+  
+  modalImgContainer.addEventListener('touchstart', e => {
+    touchstartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  
+  modalImgContainer.addEventListener('touchend', e => {
+    touchendX = e.changedTouches[0].screenX;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const swipeThreshold = 50; // Jarak minimum usapan jari (pixel)
+    if (touchendX < touchstartX - swipeThreshold) {
+      ReferencesModule.nextImage(); // Geser ke kiri (Foto selanjutnya)
+    }
+    if (touchendX > touchstartX + swipeThreshold) {
+      ReferencesModule.prevImage(); // Geser ke kanan (Foto sebelumnya)
+    }
+  }}
 
 async function initialize() {
   CartModule.init();
