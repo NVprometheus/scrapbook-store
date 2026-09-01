@@ -1,7 +1,10 @@
 const CONFIG = {
-  // SAMAKAN DENGAN URL API TOKO UTAMAMU
   API_URL: "https://script.google.com/macros/s/AKfycby72Zqja-7P7H1QcYfW9W_LxxtHF0KKy3p71bI4TrvB62CmkN_P9bVx0rEcki1juB2q/exec",
-  DUMMY_PASSWORD: "admin"
+  DUMMY_PASSWORD: "admin",
+  
+  // 👇 GANTI DUA BARIS INI DENGAN DATA CLOUDINARY MILIKMU 👇
+  CLOUDINARY_URL: "https://api.cloudinary.com/v1_1/vtd7inkb/image/upload",
+  CLOUDINARY_PRESET: "odbmmzkd" 
 };
 
 const AdminApp = {
@@ -54,6 +57,9 @@ const AdminApp = {
     document.getElementById("loginForm").addEventListener("submit", e => this.handleLogin(e));
     document.getElementById("logoutBtn").addEventListener("click", () => this.logout());
     document.getElementById("productForm").addEventListener("submit", e => this.handleProductSubmit(e));
+    
+    // Fitur Auto Upload Gambar saat File dipilih
+    document.getElementById("formImageFile").addEventListener("change", e => this.uploadImage(e));
 
     const navItems = document.querySelectorAll('#sidebarNav .nav-item:not(#logoutBtn)');
     navItems.forEach(item => {
@@ -69,9 +75,6 @@ const AdminApp = {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(num || 0);
   },
 
-  // ==========================================
-  // FETCH DATA
-  // ==========================================
   async loadData() {
     try {
       const [prodRes, ordRes] = await Promise.all([
@@ -85,9 +88,7 @@ const AdminApp = {
       this.renderDashboard();
       this.renderProducts();
       this.renderOrders();
-    } catch (err) {
-      console.error("Gagal load data", err);
-    }
+    } catch (err) { console.error("Gagal load data", err); }
   },
 
   renderDashboard() {
@@ -101,21 +102,20 @@ const AdminApp = {
     }
   },
 
-  // ==========================================
-  // PRODUCTS & MODAL
-  // ==========================================
   renderProducts() {
     const box = document.querySelector('#panel-products .placeholder-box');
     if (!this.products.length) { box.innerHTML = "<p>Belum ada produk.</p>"; return; }
     
     let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
-      <tr style="border-bottom:2px solid #eee;"><th>ID</th><th>Nama</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr>`;
+      <tr style="border-bottom:2px solid #eee;"><th>Foto</th><th>ID / Nama</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr>`;
     
     this.products.forEach(p => {
       const badge = p.active ? `<span class="badge badge-success">Aktif</span>` : `<span class="badge badge-danger">Nonaktif</span>`;
+      const img = p.image_url ? `<img src="${p.image_url}" style="width:40px; height:40px; border-radius:6px; object-fit:cover;">` : "📦";
+      
       html += `<tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px;">${p.product_id}</td>
-        <td style="padding:10px;">${p.product_name}</td>
+        <td style="padding:10px;">${img}</td>
+        <td style="padding:10px;"><strong>${p.product_id}</strong><br>${p.product_name}</td>
         <td style="padding:10px;">${this.formatRupiah(p.price)}</td>
         <td style="padding:10px;">${p.stock}</td>
         <td style="padding:10px;">${badge}</td>
@@ -131,6 +131,9 @@ const AdminApp = {
   openProductModal(id = null) {
     document.getElementById("productModal").style.display = "flex";
     document.getElementById("productForm").reset();
+    document.getElementById("formImageUrl").value = "";
+    document.getElementById("imagePreview").style.display = "none";
+    document.getElementById("uploadStatus").style.display = "none";
     
     if (id) {
       document.getElementById("modalTitle").textContent = "Edit Produk";
@@ -141,7 +144,14 @@ const AdminApp = {
         document.getElementById("formPrice").value = p.price;
         document.getElementById("formStock").value = p.stock;
         document.getElementById("formCategory").value = p.category || 'Paper';
+        document.getElementById("formDescription").value = p.description || '';
         document.getElementById("formActive").value = p.active ? "TRUE" : "FALSE";
+        
+        if (p.image_url) {
+          document.getElementById("formImageUrl").value = p.image_url;
+          document.getElementById("imagePreview").style.backgroundImage = `url(${p.image_url})`;
+          document.getElementById("imagePreview").style.display = "block";
+        }
       }
     } else {
       document.getElementById("modalTitle").textContent = "Tambah Produk";
@@ -151,6 +161,44 @@ const AdminApp = {
 
   closeProductModal() {
     document.getElementById("productModal").style.display = "none";
+  },
+
+  // Logika Upload Foto ke Cloudinary
+  async uploadImage(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const status = document.getElementById("uploadStatus");
+    const preview = document.getElementById("imagePreview");
+    const urlInput = document.getElementById("formImageUrl");
+    const saveBtn = document.getElementById("saveProductBtn");
+
+    status.style.display = "block";
+    status.style.color = "#888";
+    status.textContent = "⏳ Sedang mengunggah foto...";
+    saveBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CONFIG.CLOUDINARY_PRESET);
+
+    try {
+      const res = await fetch(CONFIG.CLOUDINARY_URL, { method: "POST", body: formData });
+      const data = await res.json();
+      
+      if (data.secure_url) {
+        urlInput.value = data.secure_url;
+        preview.style.backgroundImage = `url(${data.secure_url})`;
+        preview.style.display = "block";
+        status.textContent = "✅ Foto berhasil diunggah!";
+        status.style.color = "green";
+      } else { throw new Error("Gagal dapat URL"); }
+    } catch (err) {
+      status.textContent = "❌ Gagal mengunggah foto. Pastikan Cloudinary tersetting benar.";
+      status.style.color = "red";
+    } finally {
+      saveBtn.disabled = false;
+    }
   },
 
   async handleProductSubmit(e) {
@@ -165,6 +213,8 @@ const AdminApp = {
       price: document.getElementById("formPrice").value,
       stock: document.getElementById("formStock").value,
       category: document.getElementById("formCategory").value,
+      image_url: document.getElementById("formImageUrl").value,
+      description: document.getElementById("formDescription").value,
       active: document.getElementById("formActive").value === "TRUE"
     };
 
@@ -174,25 +224,18 @@ const AdminApp = {
       if(data.success) {
         alert("Berhasil disimpan!");
         this.closeProductModal();
-        this.loadData(); // Reload data dari sheets
+        this.loadData();
       } else alert("Gagal: " + data.message);
-    } catch (err) {
-      alert("Error jaringan.");
-    } finally {
+    } catch (err) { alert("Error jaringan."); } finally {
       btn.textContent = "Simpan"; btn.disabled = false;
     }
   },
 
-  // ==========================================
-  // ORDERS
-  // ==========================================
   renderOrders() {
     const box = document.querySelector('#panel-orders .placeholder-box');
     if (!this.orders.length) { box.innerHTML = "<p>Belum ada pesanan.</p>"; return; }
-
     let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
       <tr style="border-bottom:2px solid #eee;"><th>ID / Tgl</th><th>Pembeli</th><th>Item</th><th>Total</th></tr>`;
-    
     this.orders.forEach(o => {
       const date = o.order_date ? new Date(o.order_date).toLocaleDateString('id-ID') : '-';
       html += `<tr style="border-bottom:1px solid #eee;">
