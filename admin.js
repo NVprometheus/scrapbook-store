@@ -86,8 +86,13 @@ const AdminApp = {
       if (ordRes.success) this.orders = ordRes.orders || [];
       if (refRes.success) this.references = refRes.references || [];
 
-      this.renderDashboard(); this.renderProducts(); this.renderOrders(); this.renderReferences();
-    } catch (err) { console.error("Gagal load data", err); }
+      this.renderDashboard(); 
+      this.renderProducts(); 
+      this.renderOrders(); 
+      this.renderReferences();
+    } catch (err) { 
+      console.error("Gagal load data", err); 
+    }
   },
 
   renderDashboard() {
@@ -95,7 +100,9 @@ const AdminApp = {
     const totalRevenue = this.orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
     const stats = document.querySelectorAll('.stat-value');
     if (stats.length >= 3) {
-      stats[0].textContent = this.orders.length; stats[1].textContent = activeProducts; stats[2].textContent = this.formatRupiah(totalRevenue);
+      stats[0].textContent = this.orders.length; 
+      stats[1].textContent = activeProducts; 
+      stats[2].textContent = this.formatRupiah(totalRevenue);
     }
   },
 
@@ -136,6 +143,7 @@ const AdminApp = {
   // ==========================================
   renderProducts() {
     const box = document.getElementById('productBox');
+    if (!box) return;
     if (!this.products.length) { box.innerHTML = "<p>Belum ada produk.</p>"; return; }
     let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
       <tr style="border-bottom:2px solid #eee;"><th>Foto</th><th>ID / Nama</th><th>Harga</th><th>Stok</th><th>Status</th><th>Aksi</th></tr>`;
@@ -180,13 +188,17 @@ const AdminApp = {
   // ==========================================
   renderReferences() {
     const box = document.getElementById('referenceBox');
+    if (!box) return;
     if (!this.references.length) { box.innerHTML = "<p>Belum ada karya portfolio.</p>"; return; }
     
     let html = `<div class="admin-ref-grid">`;
     this.references.forEach(r => {
-     const badge = r.active 
+      // INI POSISI BADGE YANG BENAR SEHINGGA TIDAK CRASH & RAPI
+      const badge = r.active 
         ? `<span class="badge badge-success" style="position:absolute; top:10px; right:10px; z-index:2; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Aktif</span>` 
         : `<span class="badge badge-danger" style="position:absolute; top:10px; right:10px; z-index:2; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Nonaktif</span>`;
+      
+      const images = (r.image_urls || "").split(",");
       const img = images[0] ? `<img src="${images[0]}" class="admin-ref-img">` : `<div class="admin-ref-img" style="display:grid; place-items:center; font-size:40px;">🖼️</div>`;
       
       html += `
@@ -219,7 +231,7 @@ const AdminApp = {
       const data = await res.json();
       if (data.success) {
         alert("Berhasil dihapus!");
-        this.loadData(); // Tarik data terbaru
+        this.loadData();
       } else {
         alert("Gagal menghapus: " + data.message);
       }
@@ -227,11 +239,41 @@ const AdminApp = {
       alert("Error jaringan saat menghapus.");
     }
   },
+
+  openReferenceModal(id = null) {
+    document.getElementById("referenceModal").style.display = "flex"; document.getElementById("referenceForm").reset();
+    document.getElementById("refImageUrl").value = ""; document.getElementById("refImagePreview").style.display = "none"; document.getElementById("refUploadStatus").style.display = "none";
+    if (id) {
+      document.getElementById("refModalTitle").textContent = "Edit Karya";
+      const r = this.references.find(x => x.reference_id === id);
+      if(r) {
+        document.getElementById("refId").value = r.reference_id; document.getElementById("refTitle").value = r.title; document.getElementById("refDescription").value = r.description || ''; document.getElementById("refSort").value = r.sort_order; document.getElementById("refActive").value = r.active ? "TRUE" : "FALSE";
+        const images = (r.image_urls || "").split(",");
+        if (images[0]) { document.getElementById("refImageUrl").value = images[0]; document.getElementById("refImagePreview").style.backgroundImage = `url(${images[0]})`; document.getElementById("refImagePreview").style.display = "block"; }
+      }
+    } else { document.getElementById("refModalTitle").textContent = "Tambah Karya"; document.getElementById("refId").value = ""; document.getElementById("refSort").value = this.references.length + 1; }
+  },
+
+  closeReferenceModal() { document.getElementById("referenceModal").style.display = "none"; },
+
+  async handleReferenceSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById("saveRefBtn"); btn.textContent = "Menyimpan..."; btn.disabled = true;
+    const payload = {
+      action: "saveReference", reference_id: document.getElementById("refId").value, title: document.getElementById("refTitle").value, image_urls: document.getElementById("refImageUrl").value, description: document.getElementById("refDescription").value, sort_order: document.getElementById("refSort").value, active: document.getElementById("refActive").value === "TRUE"
+    };
+    try {
+      const res = await fetch(CONFIG.API_URL, { method: "POST", body: JSON.stringify(payload) }); const data = await res.json();
+      if(data.success) { alert("Tersimpan!"); this.closeReferenceModal(); this.loadData(); } else alert("Gagal: " + data.message);
+    } catch (err) { alert("Error jaringan."); } finally { btn.textContent = "Simpan"; btn.disabled = false; }
+  },
+
   // ==========================================
   // ORDERS LOGIC
   // ==========================================
   renderOrders() {
     const box = document.getElementById('orderBox');
+    if (!box) return;
     if (!this.orders.length) { box.innerHTML = "<p>Belum ada pesanan.</p>"; return; }
     let html = `<table style="width:100%; text-align:left; border-collapse:collapse; background:white;">
       <tr style="border-bottom:2px solid #eee;"><th>ID / Tgl</th><th>Pembeli</th><th>Item</th><th>Total</th></tr>`;
