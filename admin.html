@@ -5,129 +5,268 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control Panel - Nikiara.studio</title>
   <link rel="stylesheet" href="admin.css">
-  <style>
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-    .modal-content input, .modal-content textarea, .modal-content select { width: 100%; padding: 10px; margin: 8px 0 15px; border: 1px solid #ddd; border-radius: 6px; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-    .badge-success { background: #e7efd9; color: #4d5b4f; }
-    .badge-danger { background: #f8d7da; color: #721c24; }
-  </style>
 </head>
 <body>
 
+  <!-- LOGIN SCREEN -->
   <div id="loginScreen" class="login-screen">
     <div class="login-card">
-      <h2>Nikiara Admin</h2>
+      <h2>🔐 Nikiara Admin</h2>
       <form id="loginForm">
-        <input type="password" id="adminPassword" required placeholder="Password Admin" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ccc; border-radius:8px;">
-        <button type="submit" class="primary-button" style="width:100%">Login</button>
-        <p id="loginError" style="display:none; color:red; margin-top:10px;">Password salah!</p>
+        <input type="password" id="adminPassword" required placeholder="Masukkan password admin" autocomplete="off">
+        <button type="submit" class="primary-button" style="width:100%;">Masuk</button>
+        <p id="loginError" style="display:none; color:#d9534f; margin-top:12px; font-size:13px;">❌ Password salah! Coba lagi.</p>
       </form>
     </div>
   </div>
 
+  <!-- ADMIN DASHBOARD -->
   <div id="adminDashboard" class="admin-layout" style="display: none;">
+    <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div class="sidebar-header"><h2>Admin Panel</h2></div>
+      <div class="sidebar-header"><h2>📊 Admin</h2></div>
       <nav class="sidebar-nav" id="sidebarNav">
-        <button class="nav-item active" data-target="panel-dashboard">📊 Dashboard</button>
-        <button class="nav-item" data-target="panel-products">📦 Products</button>
-        <button class="nav-item" data-target="panel-orders">🛒 Orders</button>
+        <button class="nav-item active" data-target="panel-dashboard">📈 Dashboard</button>
+        <button class="nav-item" data-target="panel-products">📦 Produk</button>
+        <button class="nav-item" data-target="panel-categories">🏷️ Kategori</button>
+        <button class="nav-item" data-target="panel-orders">🛒 Pesanan</button>
         <button class="nav-item" data-target="panel-references">✨ Portfolio</button>
-        <button id="logoutBtn" class="nav-item text-danger" style="margin-top:auto">🚪 Logout</button>
+        <button class="nav-item" data-target="panel-settings">⚙️ Pengaturan</button>
+        <button id="logoutBtn" class="nav-item text-danger">🚪 Keluar</button>
       </nav>
     </aside>
 
+    <!-- MAIN CONTENT -->
     <main class="main-content">
       <header class="top-header"><h2 id="currentPanelTitle">Dashboard</h2></header>
       <div class="content-area">
+
+        <!-- PANEL: DASHBOARD -->
         <div id="panel-dashboard" class="panel active">
           <div class="stats-grid">
-            <div class="stat-card"><h3>Total Orders</h3><p class="stat-value">0</p></div>
-            <div class="stat-card"><h3>Active Products</h3><p class="stat-value">0</p></div>
-            <div class="stat-card"><h3>Total Revenue</h3><p class="stat-value">Rp0</p></div>
+            <div class="stat-card">
+              <h3>Total Pesanan</h3>
+              <p class="stat-value" id="stat-orders">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Produk Aktif</h3>
+              <p class="stat-value" id="stat-products">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Total Penjualan</h3>
+              <p class="stat-value" id="stat-revenue">Rp0</p>
+            </div>
           </div>
         </div>
 
+        <!-- PANEL: PRODUCTS -->
         <div id="panel-products" class="panel" style="display: none;">
-          <div style="margin-bottom: 15px; text-align: right;"><button class="primary-button" onclick="AdminApp.openProductModal()">+ Tambah Produk</button></div>
-          <div class="placeholder-box" id="productBox"><p>⏳ Memuat Produk...</p></div>
+          <div class="panel-toolbar">
+            <button class="primary-button" onclick="AdminApp.openProductModal()">+ Tambah Produk</button>
+          </div>
+          <div class="placeholder-box" id="productBox"><p>⏳ Memuat produk...</p></div>
         </div>
 
+        <!-- PANEL: CATEGORIES (NEW) -->
+        <div id="panel-categories" class="panel" style="display: none;">
+          <div class="panel-toolbar">
+            <button class="primary-button" onclick="AdminApp.openCategoryModal()">+ Tambah Kategori</button>
+          </div>
+          <div class="placeholder-box" id="categoryBox"><p>⏳ Memuat kategori...</p></div>
+        </div>
+
+        <!-- PANEL: ORDERS -->
         <div id="panel-orders" class="panel" style="display: none;">
-          <div class="placeholder-box" id="orderBox"><p>⏳ Memuat Pesanan...</p></div>
+          <div class="placeholder-box" id="orderBox"><p>⏳ Memuat pesanan...</p></div>
         </div>
-        
-        <!-- PANEL PORTFOLIO / REFERENCES -->
+
+        <!-- PANEL: REFERENCES (PORTFOLIO) -->
         <div id="panel-references" class="panel" style="display: none;">
-          <div style="margin-bottom: 15px; text-align: right;"><button class="primary-button" onclick="AdminApp.openReferenceModal()">+ Tambah Karya</button></div>
-          <div class="placeholder-box" id="referenceBox"><p>⏳ Memuat Portfolio...</p></div>
+          <div class="panel-toolbar">
+            <button class="primary-button" onclick="AdminApp.openReferenceModal()">+ Tambah Karya</button>
+          </div>
+          <div class="placeholder-box" id="referenceBox"><p>⏳ Memuat portfolio...</p></div>
         </div>
+
+        <!-- PANEL: SETTINGS -->
+        <div id="panel-settings" class="panel" style="display: none;">
+          <div class="placeholder-box" id="settingsBox"><p>⏳ Memuat pengaturan...</p></div>
+        </div>
+
       </div>
     </main>
   </div>
 
-  <!-- MODAL PRODUK -->
+  <!-- ==========================================
+       MODAL: PRODUK
+  ========================================== -->
   <div id="productModal" class="modal">
     <div class="modal-content">
-      <h3 id="modalTitle" style="margin-bottom: 15px;">Tambah Produk</h3>
+      <h3 id="productModalTitle">Tambah Produk</h3>
       <form id="productForm">
         <input type="hidden" id="formProductId">
-        <label>Foto Produk</label>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="file" id="formImageFile" accept="image/*" style="flex:1;">
-          <input type="hidden" id="formImageUrl">
-          <div id="imagePreview" style="width:45px; height:45px; border-radius:6px; background:#eee; display:none; background-size:cover;"></div>
+        
+        <div class="form-group">
+          <label>Foto Produk</label>
+          <div class="upload-area">
+            <input type="file" id="formImageFile" accept="image/*">
+            <input type="hidden" id="formImageUrl">
+            <div id="imagePreview" class="image-preview"></div>
+          </div>
+          <p id="uploadStatus" class="upload-status"></p>
         </div>
-        <p id="uploadStatus" style="font-size:12px; margin-top:-10px; margin-bottom:15px; display:none;"></p>
-        <label>Nama Produk</label><input type="text" id="formName" required>
-        <div style="display:flex; gap:10px;">
-          <div style="flex:1"><label>Harga (Rp)</label><input type="number" id="formPrice" required></div>
-          <div style="flex:1"><label>Stok</label><input type="number" id="formStock" required></div>
+
+        <div class="form-group">
+          <label>Nama Produk</label>
+          <input type="text" id="formName" required>
         </div>
-        <label>Kategori</label>
-        <select id="formCategory" required><option value="Paper">Paper</option><option value="Sticker">Sticker</option><option value="Journal">Journal</option><option value="Decoration">Decoration</option></select>
-        <label>Deskripsi Singkat</label><textarea id="formDescription" rows="2"></textarea>
-        <label>Status</label><select id="formActive"><option value="TRUE">Aktif</option><option value="FALSE">Nonaktif</option></select>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button type="button" onclick="AdminApp.closeProductModal()" style="flex:1; padding:10px; background:#eee; border-radius:8px;">Batal</button>
-          <button type="submit" class="primary-button" style="flex:1;" id="saveProductBtn">Simpan</button>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Harga (Rp)</label>
+            <input type="number" id="formPrice" required min="0">
+          </div>
+          <div class="form-group">
+            <label>Stok</label>
+            <input type="number" id="formStock" required min="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="formCategory" required>
+            <option value="">-- Pilih Kategori --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Deskripsi</label>
+          <textarea id="formDescription"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="formActive">
+              <option value="TRUE">Aktif</option>
+              <option value="FALSE">Nonaktif</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Featured</label>
+            <select id="formFeatured">
+              <option value="FALSE">Tidak</option>
+              <option value="TRUE">Ya</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn-cancel" onclick="AdminApp.closeProductModal()">Batal</button>
+          <button type="submit" class="primary-button" id="saveProductBtn">Simpan Produk</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL REFERENCES -->
+  <!-- ==========================================
+       MODAL: KATEGORI (NEW)
+  ========================================== -->
+  <div id="categoryModal" class="modal">
+    <div class="modal-content">
+      <h3 id="categoryModalTitle">Tambah Kategori</h3>
+      <form id="categoryForm">
+        <input type="hidden" id="formCategoryId">
+        
+        <div class="form-group">
+          <label>ID Kategori</label>
+          <input type="text" id="formCatId" required placeholder="mis: cat_paper" pattern="[a-zA-Z0-9_-]+" title="Gunakan huruf, angka, underscore, atau hyphen">
+        </div>
+
+        <div class="form-group">
+          <label>Nama Kategori</label>
+          <input type="text" id="formCatName" required placeholder="mis: Paper">
+        </div>
+
+        <div class="form-group">
+          <label>Icon/Emoji</label>
+          <input type="text" id="formCatIcon" value="📦" maxlength="5" placeholder="mis: 📄">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Urutan</label>
+            <input type="number" id="formCatSort" value="999" min="1">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="formCatActive">
+              <option value="TRUE">Aktif</option>
+              <option value="FALSE">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn-cancel" onclick="AdminApp.closeCategoryModal()">Batal</button>
+          <button type="submit" class="primary-button" id="saveCategoryBtn">Simpan Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: REFERENCES (PORTFOLIO)
+  ========================================== -->
   <div id="referenceModal" class="modal">
     <div class="modal-content">
-      <h3 id="refModalTitle" style="margin-bottom: 15px;">Tambah Karya (Portfolio)</h3>
+      <h3 id="referenceModalTitle">Tambah Karya Portfolio</h3>
       <form id="referenceForm">
-        <input type="hidden" id="refId">
-        <label>Foto Karya</label>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="file" id="refImageFile" accept="image/*" style="flex:1;">
-          <input type="hidden" id="refImageUrl">
-          <div id="refImagePreview" style="width:45px; height:45px; border-radius:6px; background:#eee; display:none; background-size:cover;"></div>
+        <input type="hidden" id="formRefId">
+        
+        <div class="form-group">
+          <label>Foto Karya</label>
+          <div class="upload-area">
+            <input type="file" id="formRefImageFile" accept="image/*">
+            <input type="hidden" id="formRefImageUrl">
+            <div id="refImagePreview" class="image-preview"></div>
+          </div>
+          <p id="refUploadStatus" class="upload-status"></p>
         </div>
-        <p id="refUploadStatus" style="font-size:12px; margin-top:-10px; margin-bottom:15px; display:none;"></p>
-        
-        <label>Judul Karya</label><input type="text" id="refTitle" required>
-        <label>Deskripsi (Opsional)</label><textarea id="refDescription" rows="2"></textarea>
-        
-        <div style="display:flex; gap:10px;">
-          <div style="flex:1"><label>Urutan (Angka)</label><input type="number" id="refSort" value="1" required></div>
-          <div style="flex:1"><label>Status</label><select id="refActive"><option value="TRUE">Aktif</option><option value="FALSE">Nonaktif</option></select></div>
+
+        <div class="form-group">
+          <label>Judul Karya</label>
+          <input type="text" id="formRefTitle" required>
         </div>
-        
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button type="button" onclick="AdminApp.closeReferenceModal()" style="flex:1; padding:10px; background:#eee; border-radius:8px;">Batal</button>
-          <button type="submit" class="primary-button" style="flex:1;" id="saveRefBtn">Simpan</button>
+
+        <div class="form-group">
+          <label>Deskripsi</label>
+          <textarea id="formRefDescription"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Urutan</label>
+            <input type="number" id="formRefSort" value="999" min="1">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="formRefActive">
+              <option value="TRUE">Aktif</option>
+              <option value="FALSE">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn-cancel" onclick="AdminApp.closeReferenceModal()">Batal</button>
+          <button type="submit" class="primary-button" id="saveRefBtn">Simpan Karya</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- SCRIPTS -->
   <script src="admin.js"></script>
 </body>
 </html>
